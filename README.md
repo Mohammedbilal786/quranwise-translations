@@ -50,3 +50,24 @@ Flat array, each entry:
   "ayahs": ["1:1", "1:2", "2:255", "..."]
 }
 ```
+
+## `morphology/morphology.json`
+
+Word-level meaning and root data, sourced from QUL's [English Word by Word Translation](https://qul.tarteel.ai/resources/translation/92) (gloss per word) and [Word root](https://qul.tarteel.ai/resources/morphology/76) (root letters + transliteration per word) resources — both from the Quranic Arabic Corpus (Kais Dukes), the same open academic linguistic-annotation project as `topics/topics.json`'s Ontology data. No Arabic word text is included here: the app splits its own already-displayed Arabic text into words and joins by position, so this file only needs to carry the per-word English gloss and, where the word has one, its root.
+
+Flat map keyed `"<surah>:<ayah>"`, each value an array ordered by word position (1-based, implicit from array index) — the trailing ayah-number marker QUL's export includes as an extra "word" is stripped:
+
+```json
+{
+  "73:4": [
+    { "meaning": "Or" },
+    { "meaning": "add", "root": "ز ي د", "rootTranslit": "zyd" },
+    { "meaning": "to it" },
+    { "meaning": "and recite", "root": "ر ت ل", "rootTranslit": "rtl" },
+    { "meaning": "the Quran", "root": "ق ر ا", "rootTranslit": "qrA" },
+    { "meaning": "(with) measured rhythmic recitation", "root": "ر ت ل", "rootTranslit": "rtl" }
+  ]
+}
+```
+
+Words with no root (particles, pronouns — about 39% of all words) simply omit `root`/`rootTranslit`.
