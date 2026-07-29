@@ -71,3 +71,24 @@ Flat map keyed `"<surah>:<ayah>"`, each value an array ordered by word position 
 ```
 
 Words with no root (particles, pronouns — about 39% of all words) simply omit `root`/`rootTranslit`.
+
+## `similar-ayahs/similar-ayahs.json`
+
+Related/similar-ayah data, sourced from QUL's [Similar Ayah](https://qul.tarteel.ai/resources/similar-ayah/74) resource — QUL's own computed word-overlap metric between ayah pairs (not translated prose, not even a named external corpus, just numeric relationships between ayah references).
+
+The source data is directional and asymmetric (e.g. `1:1 → 27:30` scores 80, but the reverse `27:30 → 1:1` scores 50 — score is relative to the matched ayah's own length). Merged into one per-ayah view: for each ayah, combined the rows where it's the source (preferred when both directions exist for the same pair) with rows where it's only the target (deduped), sorted by score descending.
+
+Flat map keyed `"<surah>:<ayah>"`, each value an array of related ayahs:
+
+```json
+{
+  "1:1": [
+    { "ayah": "27:30", "score": 80, "matchedWords": 4, "coverage": 50 },
+    { "ayah": "59:22", "score": 56, "matchedWords": 2, "coverage": 15 },
+    { "ayah": "1:3", "score": 50, "matchedWords": 2, "coverage": 100 },
+    { "ayah": "41:2", "score": 50, "matchedWords": 2, "coverage": 50 }
+  ]
+}
+```
+
+Only the 1,644 ayahs (of 6,236) with at least one match are present.
