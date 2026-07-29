@@ -92,17 +92,3 @@ Flat map keyed `"<surah>:<ayah>"`, each value an array of related ayahs:
 ```
 
 Only the 1,644 ayahs (of 6,236) with at least one match are present.
-
-## `transliteration/transliteration-tajweed.json`
-
-Tajweed-enhanced Latin transliteration, sourced from QUL's [English Transliteration(Tajweed)](https://qul.tarteel.ai/resources/transliteration/469) resource. This is a distinct edition from the app's default transliteration (a separate, non-QUL source, `src/api/quran.ts`'s `fetchSurahTransliteration`) — the "tajweed enhancement" here is baked into the respelling itself (reflecting connected-recitation pronunciation: hamzat-ul-wasl elision, idgham/assimilation across word boundaries, etc.), not a colour/markup annotation layer, so no bracket-tag parsing is needed to use it.
-
-Checked QUL's own copyright marker (`"This resource is © copyrighted."`, shown on some individual translation resources) on both this resource's detail page and its category listing — absent for this one. No named author/attribution for this specific resource on QUL's Credits page either. Treated as the same risk class as the translation-edition text already hosted here (full Qur'an wording rendering, not structural/computed data like `topics.json`/`morphology.json`/`similar-ayahs.json`) — hosted on the same basis as those translations, since no copyright flag was found where QUL does flag some resources that way.
-
-Flat map keyed `"<surah>:<ayah>"` → string, all 6,236 ayahs:
-
-```json
-{
-  "1:1": "Bismil laahir Rahmaanir Raheem"
-}
-```
