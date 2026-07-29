@@ -92,3 +92,17 @@ Flat map keyed `"<surah>:<ayah>"`, each value an array of related ayahs:
 ```
 
 Only the 1,644 ayahs (of 6,236) with at least one match are present.
+
+## `transliteration/transliteration-tajweed.json`
+
+Tajweed-enhanced Latin transliteration, sourced from QUL's [English Transliteration(Tajweed)](https://qul.tarteel.ai/resources/transliteration/469) resource. This is a distinct edition from the app's default transliteration (a separate, non-QUL source, `src/api/quran.ts`'s `fetchSurahTransliteration`) — the "tajweed enhancement" here is baked into the respelling itself (reflecting connected-recitation pronunciation: hamzat-ul-wasl elision, idgham/assimilation across word boundaries, etc.), not a colour/markup annotation layer, so no bracket-tag parsing is needed to use it.
+
+**Licensing note:** checked QUL's own copyright marker (`"This resource is © copyrighted."`, shown on some individual translation resources) on both this resource's detail page and its category listing — absent for this one. No named author/attribution for this specific resource on QUL's Credits page either. That's ambiguous silence, not a confirmed-clear finding — this content is prose-like (a full text rendering of the Qur'an's wording), the same risk class as a translation edition, not the lower-risk structural/computed data category (`topics.json`/`morphology.json`/`similar-ayahs.json`). **Hosted here as a deliberate, explicit, one-time exception made directly by the app owner**, who is personally pursuing redistribution permission from Tarteel AI/QUL afterward — this is not a change to the standing rule for this repo (verify license before hosting; default to mechanism-only on ambiguous silence for prose-like content). Future additions still follow that standing rule.
+
+Flat map keyed `"<surah>:<ayah>"` → string, all 6,236 ayahs:
+
+```json
+{
+  "1:1": "Bismil laahir Rahmaanir Raheem"
+}
+```
