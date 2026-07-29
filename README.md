@@ -30,3 +30,23 @@ Licensing varies per translation — see [QUL's translations page](https://qul.t
 | `translations/ru-kuliev.json` | Russian | Elmir Kuliev |
 | `translations/zh-majian.json` | Chinese (Simplified) | Ma Jian |
 | `translations/ur-jalandhry.json` | Urdu | Fatah Muhammad Jalandhari |
+
+## `topics/topics.json`
+
+Quranic topics/concepts data, sourced from [QUL's Ayah Topics resource](https://qul.tarteel.ai/resources/ayah-topics/45) — a structured concept graph (topic names, Ontology/Thematic/General categorization, parent/child hierarchy, and which ayahs belong to each topic), not translated prose. Converted from QUL's downloadable SQLite export; the `description`/`wiki_link`/`related_topics` columns were deliberately dropped (short encyclopedic text with unclear sourcing/licensing, and not needed for a "browse by theme" feature). Topics with zero associated ayahs (pure category nodes) are also excluded.
+
+Flat array, each entry:
+
+```json
+{
+  "id": 1,
+  "name": "Allah",
+  "arabicName": "الله",
+  "thematic": true,
+  "ontology": true,
+  "parentId": null,
+  "thematicParentId": 1837,
+  "ontologyParentId": null,
+  "ayahs": ["1:1", "1:2", "2:255", "..."]
+}
+```
