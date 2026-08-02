@@ -93,6 +93,43 @@ Flat map keyed `"<surah>:<ayah>"`, each value an array of related ayahs:
 
 Only the 1,644 ayahs (of 6,236) with at least one match are present.
 
+## `mushaf-layout/`
+
+Print-accurate Mushaf page/line layout data, sourced from QUL's [Mushaf Layouts](https://qul.tarteel.ai/resources/mushaf-layout) resources — powers a real page-for-page Indo-Pak reading mode (16-liner and 13-liner) rather than plain reflowed text.
+
+- `mushaf-layout/indopak-16-lines-taj.json` — [Indopak 16 lines layout (Taj company)](https://qul.tarteel.ai/resources/mushaf-layout/11), 548 pages.
+- `mushaf-layout/indopak-13-lines-taj.json` — [Indopak 13 lines layout (Taj company)](https://qul.tarteel.ai/resources/mushaf-layout/313), 847 pages.
+- `mushaf-layout/words-indopak-nastaleeq.json` — [Indopak Nastaleeq script - Word by Word](https://qul.tarteel.ai/resources/quran-script/59), the per-word glyph text both layouts above reference by word ID (shared, since both layouts use the same `indopak-nastaleeq` font/script).
+
+Converted from QUL's downloadable SQLite exports, grouped by page at conversion time rather than shipping the raw per-line table. Layout files:
+
+```json
+{
+  "info": { "linesPerPage": 16, "numberOfPages": 548, "fontName": "indopak-nastaleeq", "surahStartPages": { "1": 1, "2": 2 } },
+  "pages": [
+    [
+      { "type": "surah_name", "centered": true, "surahNumber": 1 },
+      { "type": "ayah", "centered": true, "firstWordId": 1, "lastWordId": 5 }
+    ]
+  ]
+}
+```
+
+`pages[i]` is page `i+1`'s lines, in reading order. `type` is `surah_name` | `basmallah` | `ayah`; only `ayah` lines carry a word-ID range (resolved against `words-indopak-nastaleeq.json`), only `surah_name` lines carry `surahNumber`. `centered` distinguishes center- vs justify-alignment for that line — this is QUL's own documented rendering algorithm (`qul.tarteel.ai/docs/mushaf-layout`), not a reinterpretation.
+
+The words file de-duplicates the per-word `"surah:ayah"` key QUL's export repeats on every word of the same ayah:
+
+```json
+{
+  "words": ["بِسْمِ", "اللّٰهِ", "الرَّحْمٰنِ", "الرَّحِیْمِ", "۟"],
+  "ayahBoundaries": [{ "key": "1:1", "start": 1 }, { "key": "1:2", "start": 6 }]
+}
+```
+
+`words[i]` is word ID `i+1`'s text (word IDs are a single running index across the whole Quran, matching the layout files' `firstWordId`/`lastWordId`, per QUL's schema — not scoped per-ayah). `ayahBoundaries` gives the first word ID of each ayah, in order; the last ID belonging to an ayah is the entry before the next boundary (or the final word ID for 114:6). 83,668 words total, 6,236 ayah boundaries — full-Quran coverage confirmed (every layout file's highest referenced word ID is exactly 83,668, matching this file's word count).
+
+**Licensing note:** none of these three resources carry QUL's `"This resource is © copyrighted."` marker on their detail or category pages, but there's no explicit redistribution grant either — the same ambiguous-silence situation as `transliteration/transliteration-tajweed.json` below. Two of the three (the layout files) are page/line geometry and numeric word-ID ranges with no Qur'an wording in them at all — arguably closer to the lower-risk structural/computed class (`topics.json`/`morphology.json`/`similar-ayahs.json`) than to prose. The third (the word-by-word script text) does contain the Qur'an's actual wording, so it's treated at the same risk level as the transliteration file. **All three hosted here as a deliberate, explicit, one-time exception made directly by the app owner**, each confirmed individually as it was discovered rather than assumed to be covered by a blanket instruction — not a change to the standing rule for this repo. The corresponding font (`Indopak Nastaleeq font`, [qul.tarteel.ai/resources/font/242](https://qul.tarteel.ai/resources/font/242)) needed to render ~8.3% of the word data (private-use-area glyphs with no meaning in any other font) is under the same one-time exception, but is bundled directly in the [quranwise](https://github.com/Mohammedbilal786/quranwise) app repo rather than here, since it's a fixed compile-time asset rather than fetched bulk content.
+
 ## `transliteration/transliteration-tajweed.json`
 
 Tajweed-enhanced Latin transliteration, sourced from QUL's [English Transliteration(Tajweed)](https://qul.tarteel.ai/resources/transliteration/469) resource. This is a distinct edition from the app's default transliteration (a separate, non-QUL source, `src/api/quran.ts`'s `fetchSurahTransliteration`) — the "tajweed enhancement" here is baked into the respelling itself (reflecting connected-recitation pronunciation: hamzat-ul-wasl elision, idgham/assimilation across word boundaries, etc.), not a colour/markup annotation layer, so no bracket-tag parsing is needed to use it.
