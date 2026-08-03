@@ -93,6 +93,22 @@ Flat map keyed `"<surah>:<ayah>"`, each value an array of related ayahs:
 
 Only the 1,644 ayahs (of 6,236) with at least one match are present.
 
+## `quran-script/digital-khatt-indopak.json`
+
+Indo-Pak Qur'an script text, sourced from QUL's [Digital Khatt Indopak Script - Word by Word](https://qul.tarteel.ai/resources/quran-script/565) resource. Replaces the app's previous Indo-Pak script source (a `fawazahmed0/quran-api` edition rendered in Noto Naskh Arabic, resolved in issue #21/#14) — a full replacement, not an addition, per an explicit call by the app owner after weighing both.
+
+The raw export is word-by-word, keyed `"<surah>:<ayah>:<word>"`; converted here into one flat map keyed `"<surah>:<ayah>"`, each value the full ayah text with all its words joined by a single space in word order (matching this repo's other per-ayah files, and analogous to how `mushaf-layout/words-indopak-nastaleeq.json` above resolves its own word ranges). The trailing ayah-end marker QUL includes as the ayah's last "word" (e.g. `۝٢٨٦ࣖ` — the end-of-ayah glyph plus the ayah's own Arabic-Indic numeral and, where present, a ruku/waqf mark) is kept as authentic to the source and to real Indo-Pak Mushaf print convention, not stripped — the app's own separate ayah-number badge UI is additional context, not a replacement for it. One ayah (1:7) had a stray U+202E (right-to-left override, a zero-width bidi control code, not a visible glyph) in its raw export; stripped during conversion as noise, not data loss — no font renders a glyph for it regardless.
+
+```json
+{
+  "1:1": "بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ ۝"
+}
+```
+
+All 114 surahs / 6,236 ayahs present and verified against the standard per-surah ayah-count table — no gaps, no extras.
+
+**Licensing note — confirmed clean, not an exception.** Unlike the ambiguous-silence resources elsewhere in this file, this one traces to a normal, verifiable open license: the companion font (`font/568`, see the [quranwise](https://github.com/Mohammedbilal786/quranwise) app repo's bundled `.otf`) is DigitalKhatt's Indopak font, `github.com/DigitalKhatt/indopakfont` — confirmed OFL-1.1 via the GitHub repo's own license metadata *and* the font file's own embedded OFL name-table entries, sponsored directly by Tarteel AI (QUL's own creator). Glyph coverage of the font against every character actually used in this file's text was verified via fontTools against the full dataset (not a spot check): 84/85 unique characters resolve, the one non-match being the U+202E control code described above (inherently glyph-less in any font, not a coverage gap).
+
 ## `mushaf-layout/`
 
 Print-accurate Mushaf page/line layout data, sourced from QUL's [Mushaf Layouts](https://qul.tarteel.ai/resources/mushaf-layout) resources — powers a real page-for-page Indo-Pak reading mode (16-liner and 13-liner) rather than plain reflowed text.
