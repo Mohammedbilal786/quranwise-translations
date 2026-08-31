@@ -1,0 +1,145 @@
+# Translation data checks
+
+Everything under `translations/` is a flat map of all 6,236 ayahs, keyed
+`"<surah>:<ayah>"` → `{"t": text}` — QUL's `simple.json` export shape. Until now
+nothing checked that the shape held. Two defects found by hand in August 2026
+([#71], [#72]) turned out to be two of many:
+
+- `ku-amin` was missing 108:3 entirely, and had been since it was added
+- `ku-amin` carried 56 stray LRMs, two of which flipped a verse to LTR on Android
+- `dv-maldives` carried 20 literal TABs and a Latin `s` inside a Thaana word
+
+Running the same checks across all 46 editions flagged **25 of them**. This is
+that pass, kept so the next edition doesn't repeat it.
+
+## Usage
+
+```sh
+python3 tools/qwt.py check                    # report on every edition
+python3 tools/qwt.py check ku-amin fa-taji    # ...or just these
+python3 tools/qwt.py check --strict           # ...including the known backlog
+python3 tools/qwt.py normalise --dry-run      # show the mechanical fixes
+python3 tools/qwt.py normalise                # apply them
+python3 tools/qwt.py convert <export.json> <edition>   # QUL export -> repo file
+```
+
+`check` exits non-zero on any *new* blocker-severity finding, which is what CI
+runs. `convert` normalises on import and refuses to write if a blocker survives;
+`--force` overrides that, and is for documented upstream gaps only.
+
+### The baseline
+
+Seven blocking findings already existed in the data when these checks were
+written, across `ku-amin`, `ko-choi`, `pl-bielawski`, `ha-gumi` and `pt-elhayek`.
+They are recorded verse by verse in `known-issues.json` so that CI fails on new
+breakage rather than on the backlog it was added to expose.
+
+That file is a baseline, not a suppression list. Every entry names real damage in
+a shipped file and carries a `why`; delete entries as the files are fixed, and
+run `check --strict` to see the whole picture at any time. Because verses are
+listed explicitly, the same defect appearing in a *new* ayah still fails the
+build — a stub added to `ha-gumi` 2:100 fails even though 27:55 is baselined.
+
+Standard library only. `tools/scriptdata.py` is generated — see
+[Regenerating the script tables](#regenerating-the-script-tables).
+
+## The split that matters
+
+**Normalise** covers mechanical, meaning-preserving defects. These are rewritten
+in place, and the change reads as a diff.
+
+**Report** covers anything that would change a word. A stray Latin `c` standing
+in for a Cyrillic `с` is a typo in a scripture translation; guessing at the
+intended character is a content edit, and belongs to a person with the source
+open. The checker names it and stops.
+
+### What gets normalised
+
+| Fix | Why |
+|---|---|
+| Strip bidi controls — LRM, RLM, ALM, the embedding/override/isolate families | No role in prose that is uniformly one direction; `ku-amin` 78:14 and 78:37 opened with an LRM, which flips those verses to LTR on Android |
+| Fold control whitespace (TAB, CR, LF, …) to a single space | Covered by no bundled font; `dv-maldives`, `sv-bernstrom` and `th-kfqc` all carried literal TABs mid-sentence |
+| Strip soft hyphen and BOM-as-ZWNBSP | Invisible, and they break substring search and copy-paste |
+| Trim leading and trailing whitespace | |
+
+Two things are deliberately **not** normalised, though they look like they could
+be. Runs of ordinary spaces are left alone — 681 verses in `it-piccardo` are
+double-spaced, which is cosmetic rather than a defect, and rewriting them would
+bury the real fixes. NO-BREAK SPACE is left alone too: it is correct typography
+before punctuation in French and Italian, and appears legitimately in seven
+editions.
+
+### What gets reported
+
+| Check | Severity | Meaning |
+|---|---|---|
+| `missing-ayah` / `unknown-ayah` | blocker | Key set doesn't match the canonical 6,236 |
+| `empty-text` | blocker | Verse present, no text |
+| `non-prose-stub` | blocker | Value contains none of the edition's own scripts — `ha-gumi` 27:55 is the string `"49."` |
+| `control-character` | blocker | A stray C1 byte. A decoding failure; deleting it would hide a file that needs re-exporting |
+| `double-encoded-utf8` | blocker | UTF-8 bytes re-read as cp1252 — `pl-bielawski` has 11 such verses |
+| `foreign-script` | review | A character from a script the edition doesn't use, almost always a homoglyph typo |
+| `mark-script-mismatch` | review | A combining mark on a base script it is never used with — an Arabic fatha inside a Dutch word |
+| `private-use` | review | Renders only in one specific font; tofu everywhere else |
+| `pending-normalisation` | info | Mechanical residue a hand-edit reintroduced. Run `normalise` |
+
+## The one thing that must never be stripped
+
+`U+200C ZERO WIDTH NON-JOINER` and `U+200D ZERO WIDTH JOINER` share Unicode
+category `Cf` with the bidi marks, so a naive "strip formatting characters" pass
+takes them too. They are **orthography, not residue**: ZWNJ separates prefixes
+and plural markers in Persian and Kurdish, ZWJ forms Malayalam chillu letters.
+
+| Edition | ZWNJ | ZWJ |
+|---|---:|---:|
+| `ku-amin` | 124,737 | — |
+| `ml-karakunnu` | 1 | 25,060 |
+| `fa-taji` | 16,208 | — |
+| `bn-zakaria` | 1,650 | 1 |
+
+Stripping these would corrupt four editions far worse than any defect this tool
+exists to fix. They are in `PROTECTED` and are never touched.
+
+## How the script checks work
+
+A character's script is resolved from generated tables rather than a regex
+engine, so the tool needs nothing but the standard library:
+
+- **Base letters** (Unicode category `L*`) map to a script. Punctuation, digits,
+  spaces and symbols are script-neutral and never attributed — every edition
+  uses ASCII punctuation and Latin digits. So are letters belonging to no single
+  script: the Japanese prolonged sound mark, Arabic tatweel, and the modifier
+  half-ring standing in for ʿayn in English transliteration.
+- **Combining marks** (category `M*`) are judged against the base they sit on,
+  using Unicode's Script_Extensions. A combining macron over a Latin vowel is
+  fine; an Arabic fatha on the same vowel is not. This is what caught
+  `nl-siregar` 44:37 and `tg-pioneers` 28:56.
+
+A script present in fewer than 2% of an edition's verses is treated as
+contamination rather than as part of its writing system. Across all 46 editions
+that threshold produced exactly two false positives, both recorded in
+`allowlist.json`: the honorific ﷺ in `en-sahih`, and a genuine Greek etymology
+note in `it-piccardo` 35:45.
+
+Keep that allowlist short, and only add to it after actually reading the verses.
+
+## Known upstream gaps
+
+`ku-amin` 108:3 is **absent from QUL resource 144 itself** — its own ayah-by-ayah
+preview returns "Translation is not available for this ayah", while three other
+Kurdish editions return 108:3 normally. Re-exporting will not fix it. Tracked in
+[#71]; the file is 6,235 verses by necessity, not by conversion error.
+
+## Regenerating the script tables
+
+`tools/scriptdata.py` is generated from the `regex` module's Unicode database and
+checked in so the tool itself has no dependencies. It only needs regenerating
+when adding support for a script no edition currently uses:
+
+```sh
+python3 -m venv /tmp/venv && /tmp/venv/bin/pip install regex
+/tmp/venv/bin/python tools/genranges.py > tools/scriptdata.py
+```
+
+[#71]: https://github.com/Mohammedbilal786/quranwise/issues/71
+[#72]: https://github.com/Mohammedbilal786/quranwise/issues/72

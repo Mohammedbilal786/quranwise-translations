@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "Scripts that legitimately appear in an edition below its dominant-script",
+    "threshold, verified by hand. Everything not listed here that trips the",
+    "foreign-script check is a real defect, so keep this file short and only add",
+    "an entry after actually reading the verses it covers."
+  ],
+  "scripts": {
+    "en-sahih": {
+      "allow": ["Arabic"],
+      "why": "The honorific SAW (U+FDFA) in 34 verses, always inside a bracketed gloss on the Prophet's name."
+    },
+    "it-piccardo": {
+      "allow": ["Greek", "Cyrillic"],
+      "why": "35:45 carries a genuine etymology note deriving 'angelo' from the Greek. The lone Cyrillic character sits inside that same Greek word and is itself a homoglyph typo, tracked separately rather than repaired here."
+    }
+  }
+}

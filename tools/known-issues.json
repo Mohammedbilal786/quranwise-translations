@@ -1,0 +1,52 @@
+{
+  "_comment": [
+    "Blocking findings that exist in the data today and are accepted for now, so",
+    "CI fails on NEW breakage rather than on the backlog it was added to expose.",
+    "",
+    "This is a baseline, not a suppression list. Every entry names real damage in",
+    "a shipped file and should be deleted as the file is fixed -- run",
+    "`qwt.py check --strict` to see the full picture at any time. Verses are",
+    "listed explicitly so that the same defect spreading to another ayah still",
+    "fails the build."
+  ],
+  "accepted": {
+    "ku-amin": {
+      "missing-ayah": {
+        "verses": ["108:3"],
+        "why": "Absent from QUL resource 144 itself -- its ayah-by-ayah preview returns 'Translation is not available for this ayah', while three other Kurdish editions return 108:3 normally. Re-exporting will not fix it. Tracked in quranwise#71."
+      },
+      "control-character": {
+        "verses": ["33:36", "33:39", "33:40"],
+        "why": "Stray U+009D in three adjacent verses. Needs a fresh export from QUL resource 144."
+      }
+    },
+    "ko-choi": {
+      "control-character": {
+        "verses": ["49:10"],
+        "why": "Stray U+0098 mid-sentence, alongside a broken Latin fragment in the same verse. Needs a fresh export."
+      }
+    },
+    "pl-bielawski": {
+      "control-character": {
+        "verses": ["3:140", "7:156", "18:94", "56:60", "69:41"],
+        "why": "C1 bytes left by the same double-encoding as below. Re-export rather than patch."
+      },
+      "double-encoded-utf8": {
+        "verses": ["3:140", "6:136", "6:138", "6:145", "7:135", "7:148", "7:156", "18:94", "20:131", "56:60", "69:41"],
+        "why": "UTF-8 read as cp1252 across 11 verses. The whole file needs re-exporting from QUL; normalisation deliberately skips these verses so the evidence survives."
+      }
+    },
+    "ha-gumi": {
+      "non-prose-stub": {
+        "verses": ["27:55"],
+        "why": "The value is the string '49.' rather than a translation. Needs checking against the QUL source."
+      }
+    },
+    "pt-elhayek": {
+      "non-prose-stub": {
+        "verses": ["55:28"],
+        "why": "The value is '.' rather than a translation. Needs checking against the QUL source."
+      }
+    }
+  }
+}

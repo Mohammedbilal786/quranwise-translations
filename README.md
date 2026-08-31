@@ -17,6 +17,24 @@ Each file is a flat map of every ayah in the Quran, keyed `"<surah>:<ayah>"`:
 }
 ```
 
+Every translation file carries all 6,236 ayahs, with one documented exception:
+`ku-amin` has 6,235, because 108:3 is absent from
+[its QUL source](https://qul.tarteel.ai/resources/translation/144) itself.
+
+## Validation
+
+`tools/` holds the conversion and validation pass — a completeness check against
+the canonical 6,236 keys, normalisation of invisible export residue, and script
+checks that flag stray characters. Run it before adding or replacing any file:
+
+```sh
+python3 tools/qwt.py check                             # validate every edition
+python3 tools/qwt.py convert <export.json> <edition>   # QUL export -> repo file
+```
+
+CI runs `check` on every push. See [tools/README.md](tools/README.md) for what
+each check covers and, importantly, which characters must never be stripped.
+
 ## Licensing
 
 Licensing varies per translation — see [QUL's translations page](https://qul.tarteel.ai/resources/translation) for the license note on each individual resource before adding more files here. Translations explicitly marked "© copyrighted" on that page are not included.
