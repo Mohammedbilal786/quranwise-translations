@@ -36,6 +36,29 @@ python3 tools/qwt.py convert <export.json> <edition>   # QUL export -> repo file
 CI runs `check` on every push. See [tools/README.md](tools/README.md) for what
 each check covers and, importantly, which characters must never be stripped.
 
+## `versions.json`
+
+A manifest mapping every file the app fetches to a short hash of its contents:
+
+```json
+{ "translations/ku-amin.json": "8d2f1a0c7b45" }
+```
+
+The app caches each whole-Quran blob on the device permanently, so without
+this there is no way to tell a phone that a file it already holds has been
+corrected — it would serve the stale copy forever (quranwise#73). The app
+reads this manifest, compares it against what it cached, and re-fetches only
+the files whose hash moved.
+
+**Regenerate it in the same commit as any data change**, or readers who
+already cached that file will never see the fix:
+
+```sh
+python3 tools/qwt.py versions
+```
+
+CI runs `versions --check` and fails the build if it is out of date.
+
 ## Licensing
 
 Licensing varies per translation — see [QUL's translations page](https://qul.tarteel.ai/resources/translation) for the license note on each individual resource before adding more files here. Translations explicitly marked "© copyrighted" on that page are not included.

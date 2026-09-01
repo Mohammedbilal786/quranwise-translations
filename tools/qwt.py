@@ -6,6 +6,8 @@
     python3 tools/qwt.py normalise             # apply the mechanical fixes
     python3 tools/qwt.py normalise --dry-run   # ...show what would change
     python3 tools/qwt.py convert <in.json> <edition>   # QUL export -> repo file
+    python3 tools/qwt.py versions              # regenerate versions.json
+    python3 tools/qwt.py versions --check      # ...fail if it is out of date
 
 `check` exits non-zero on any new blocker-severity finding, which is what
 makes it usable from CI; --strict also fails on the known backlog. `convert`
@@ -165,6 +167,43 @@ def cmd_convert(args) -> int:
     return 0
 
 
+def cmd_versions(args) -> int:
+    """Regenerate versions.json, the manifest the app revalidates against.
+
+    Every data change must land with this file regenerated, or phones that
+    already cached the old copy will never be told to fetch the new one --
+    which is the whole bug this manifest exists to close (quranwise#73).
+    CI runs `--check` so that cannot be forgotten.
+    """
+    current = Q.read_versions()
+    fresh = Q.build_versions()
+
+    added = sorted(set(fresh) - set(current))
+    removed = sorted(set(current) - set(fresh))
+    changed = sorted(k for k in fresh.keys() & current.keys() if fresh[k] != current[k])
+
+    for name in added:
+        print(f"  added    {name}  {fresh[name]}")
+    for name in removed:
+        print(f"  removed  {name}")
+    for name in changed:
+        print(f"  changed  {name}  {current[name]} -> {fresh[name]}")
+
+    if not (added or removed or changed):
+        print(f"versions.json is up to date ({len(fresh)} files)")
+        return 0
+
+    if args.check:
+        print("\nversions.json is out of date. Run `python3 tools/qwt.py versions`")
+        print("and commit the result alongside the data change, or readers who")
+        print("already cached these files will keep serving the old copy.")
+        return 1
+
+    Q.write_versions(fresh)
+    print(f"\nwrote versions.json ({len(fresh)} files)")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(prog="qwt.py", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -188,6 +227,11 @@ def main() -> int:
     p.add_argument("--force", action="store_true",
                    help="write even with blocking findings (documented upstream gaps only)")
     p.set_defaults(fn=cmd_convert)
+
+    p = sub.add_parser("versions", help="regenerate the versions.json manifest")
+    p.add_argument("--check", action="store_true",
+                   help="report and exit non-zero instead of writing; used by CI")
+    p.set_defaults(fn=cmd_versions)
 
     args = parser.parse_args()
     return args.fn(args)

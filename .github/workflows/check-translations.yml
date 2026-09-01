@@ -26,3 +26,9 @@ jobs:
         run: |
           python3 tools/qwt.py normalise --dry-run
           git diff --exit-code -- translations/
+
+      # The app caches each file forever and revalidates against
+      # versions.json, so a data change landing without a regenerated
+      # manifest ships to nobody who already has the old copy.
+      - name: Confirm versions.json matches the data
+        run: python3 tools/qwt.py versions --check

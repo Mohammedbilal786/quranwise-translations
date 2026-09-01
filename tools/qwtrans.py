@@ -20,6 +20,7 @@ See tools/README.md for the reasoning behind each check.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import sys
@@ -34,6 +35,22 @@ from scriptdata import MARK_SCRIPTS, NEUTRAL_LETTERS, SCRIPT_RANGES
 
 REPO = Path(__file__).resolve().parent.parent
 TRANSLATIONS = REPO / "translations"
+
+# Directories whose files the app fetches over the CDN, and so whose contents
+# need a version in versions.json. tools/ and the READMEs are deliberately
+# absent: nothing downloads them, and listing them would churn the manifest
+# on every documentation edit.
+DATA_DIRS = (
+    "translations",
+    "topics",
+    "morphology",
+    "similar-ayahs",
+    "transliteration",
+    "mushaf-layout",
+    "quran-script",
+)
+
+VERSIONS = REPO / "versions.json"
 
 # --------------------------------------------------------------------------
 # Canonical ayah structure
@@ -450,3 +467,62 @@ def allowlist() -> dict:
 
 def editions() -> list[Path]:
     return sorted(TRANSLATIONS.glob("*.json"))
+
+
+# --------------------------------------------------------------------------
+# Version manifest
+# --------------------------------------------------------------------------
+
+# Why this file exists: the app caches each whole-Quran blob in AsyncStorage
+# cache-first and forever, with no expiry. Before versions.json there was no
+# way to tell a phone that a file it already holds has been corrected, so a
+# reader kept a stale copy indefinitely (quranwise#73).
+#
+# The token is a hash of the file's bytes, NOT a commit sha. Two reasons.
+# A commit sha for the file could only be known after committing it, which
+# would force every data change into two commits and leave the first one
+# failing CI. And a repo-wide sha would change whenever anything at all
+# changed, invalidating all 46 editions over a README edit. A content hash
+# changes exactly when that one file's bytes change, which is the property
+# the cache actually needs.
+
+
+def data_files() -> list[Path]:
+    """Every file the app fetches, relative order stable for a stable manifest."""
+    found: list[Path] = []
+    for name in DATA_DIRS:
+        directory = REPO / name
+        if directory.is_dir():
+            found.extend(sorted(directory.rglob("*.json")))
+    return found
+
+
+def content_version(path: Path) -> str:
+    """Short content hash. Hashed from bytes, so it is blind to formatting."""
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:12]
+
+
+def build_versions() -> dict:
+    return {
+        str(path.relative_to(REPO)): content_version(path)
+        for path in data_files()
+    }
+
+
+def write_versions(versions: dict) -> None:
+    """Written sorted and newline-terminated so regenerating is a no-op diff.
+
+    Deliberately carries no timestamp or generator field: anything that
+    changes on every run would defeat the CI check that regenerates this file
+    and fails on a diff.
+    """
+    with VERSIONS.open("w", encoding="utf-8") as fh:
+        json.dump(versions, fh, ensure_ascii=False, indent=2, sort_keys=True)
+        fh.write("\n")
+
+
+def read_versions() -> dict:
+    if not VERSIONS.exists():
+        return {}
+    with VERSIONS.open(encoding="utf-8") as fh:
+        return json.load(fh)
