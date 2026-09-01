@@ -24,8 +24,9 @@ Every translation file carries all 6,236 ayahs, with one documented exception:
 ## Validation
 
 `tools/` holds the conversion and validation pass — a completeness check against
-the canonical 6,236 keys, normalisation of invisible export residue, and script
-checks that flag stray characters. Run it before adding or replacing any file:
+the canonical 6,236 keys, normalisation of invisible export residue, Unicode NFC
+composition, and script checks that flag stray characters. Run it before adding
+or replacing any file:
 
 ```sh
 python3 tools/qwt.py check                             # validate every edition

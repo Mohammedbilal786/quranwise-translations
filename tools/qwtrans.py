@@ -156,6 +156,58 @@ _FOLD_RUN = re.compile(
 )
 
 
+def combining_sequences(text: str) -> list[str]:
+    """Split into base-plus-marks clusters, the unit NFC is applied to here.
+
+    A cluster is one non-mark character followed by every combining mark that
+    attaches to it. Splitting this way is what lets composition be applied to
+    one cluster while the cluster next to it is left exactly as found.
+    """
+    out: list[str] = []
+    current = ""
+    for ch in text:
+        if current and not unicodedata.category(ch).startswith("M"):
+            out.append(current)
+            current = ch
+        else:
+            current += ch
+    if current:
+        out.append(current)
+    return out
+
+
+def reorders_marks(cluster: str) -> bool:
+    """Whether NFC would move a combining mark within this cluster.
+
+    Canonical ordering sorts marks by combining class, which is not the order
+    Arabic is typed or stored in: shadda (ccc 33) is written before its vowel
+    (ccc 27-32), so NFC swaps the pair. The two forms are canonically
+    equivalent and HarfBuzz shapes them identically, but CoreText does not --
+    see the note in tools/README.md.
+
+    Detected by decomposing twice: once canonically, which sorts, and once
+    character by character, which preserves the stored order. Where those agree
+    NFC only composes, and composition is safe.
+    """
+    return unicodedata.normalize("NFD", cluster) != "".join(
+        unicodedata.normalize("NFD", ch) for ch in cluster
+    )
+
+
+def compose_text(text: str) -> str:
+    """NFC, applied only where it will not reorder a combining mark.
+
+    Clusters that would be reordered are left byte for byte as found and
+    reported by the `mark-order` check instead. That keeps this function in the
+    same lane as the rest of normalise_text(): it changes nothing a reader can
+    see.
+    """
+    return "".join(
+        cluster if reorders_marks(cluster) else unicodedata.normalize("NFC", cluster)
+        for cluster in combining_sequences(text)
+    )
+
+
 def normalise_text(text: str) -> str:
     """Apply every mechanical, meaning-preserving fix. Never changes a word."""
     # A verse carrying double-encoded UTF-8 is left exactly as found. Its soft
@@ -180,7 +232,10 @@ def normalise_text(text: str) -> str:
     # single space. Runs of ordinary spaces elsewhere are left alone: 681 verses
     # in it-piccardo are double-spaced, which is cosmetic rather than a defect,
     # and rewriting them would bury the real fixes in the diff.
-    return _FOLD_RUN.sub(" ", "".join(out)).strip()
+    folded = _FOLD_RUN.sub(" ", "".join(out)).strip()
+
+    # Compose last, so it sees the text with the residue already gone.
+    return compose_text(folded)
 
 
 def normalise_edition(data: dict) -> tuple[dict, int]:
@@ -314,6 +369,25 @@ def check_edition(name: str, data: dict, allow_scripts: list[str]) -> list[Findi
                and normalise_text(v["t"]) != v["t"]]
     add("pending-normalisation", "normalised", pending,
         "run `python3 tools/qwt.py normalise` to clear")
+
+    # Verses whose marks are stored in an order canonical ordering would change,
+    # and which `normalise` therefore leaves alone. Reported so the gap between
+    # these files and strict NFC stays visible and countable rather than being
+    # quietly absorbed by the composition pass.
+    held, held_detail = [], {}
+    for key, value in data.items():
+        text = value.get("t") if isinstance(value, dict) else None
+        if not isinstance(text, str):
+            continue
+        for cluster in combining_sequences(text):
+            if len(cluster) > 1 and reorders_marks(cluster):
+                held.append(key)
+                marks = "+".join(_codepoint_label(ch) for ch in cluster[1:])
+                held_detail[marks] = held_detail.get(marks, 0) + 1
+    add("mark-order", "review", held,
+        "; ".join(f"{k} x{v}" for k, v in sorted(held_detail.items(), key=lambda kv: -kv[1])[:4])
+        + " -- stored order kept; NFC would reorder these and CoreText renders"
+          " the two differently")
 
     for script, verses in sorted(script_verses.items()):
         if script in dominant or script in allow_scripts:

@@ -61,9 +61,38 @@ open. The checker names it and stops.
 | Fold control whitespace (TAB, CR, LF, …) to a single space | Covered by no bundled font; `dv-maldives`, `sv-bernstrom` and `th-kfqc` all carried literal TABs mid-sentence |
 | Strip soft hyphen and BOM-as-ZWNBSP | Invisible, and they break substring search and copy-paste |
 | Trim leading and trailing whitespace | |
+| Compose to NFC, cluster by cluster | The same word arrived from QUL in two different encodings across editions; composing makes search, comparison and diffing behave. Applied only where it will not reorder a mark — see below |
 
-Two things are deliberately **not** normalised, though they look like they could
-be. Runs of ordinary spaces are left alone — 681 verses in `it-piccardo` are
+#### NFC, but never reordering a mark
+
+Composition is applied per base-plus-marks cluster, and any cluster where
+canonical ordering would *move* a mark is left byte for byte as found.
+
+That exception is not theoretical. Canonical ordering sorts combining marks by
+combining class, and Arabic is not typed in that order: shadda (ccc 33) is
+written before its vowel (ccc 27–32), so NFC swaps the pair. The two forms are
+canonically equivalent, and HarfBuzz — Android, and this repo's own Arabic
+script data — shapes them identically. **CoreText does not.** Rendering all
+9,841 verses that strict NFC would touch, before and after, through CoreText at
+the size the app uses:
+
+| | verses NFC would change | render differently on CoreText |
+|---|---:|---:|
+| Composition only (applied) | 7,877 | **0** |
+| Mark reordering (held back) | 1,964 | 1,948 |
+
+The largest group is `dv-maldives`, where 1,920 verses carry ﷲ as
+`ل + shadda + fatha`; reordering shifts the mark cluster off the lām ligature.
+1:1 is among them. Holding these back also keeps the translations consistent
+with `quran-script/` and `mushaf-layout/`, where shadda precedes its vowel in
+21,260 places and follows it in none.
+
+The held-back verses are reported by the `mark-order` check rather than being
+silently skipped, so the remaining gap between these files and strict NFC stays
+countable. Closing it is a rendering decision, not a mechanical one.
+
+Two further things are deliberately **not** normalised, though they look like
+they could be. Runs of ordinary spaces are left alone — 681 verses in `it-piccardo` are
 double-spaced, which is cosmetic rather than a defect, and rewriting them would
 bury the real fixes. NO-BREAK SPACE is left alone too: it is correct typography
 before punctuation in French and Italian, and appears legitimately in seven
@@ -81,6 +110,7 @@ editions.
 | `foreign-script` | review | A character from a script the edition doesn't use, almost always a homoglyph typo |
 | `mark-script-mismatch` | review | A combining mark on a base script it is never used with — an Arabic fatha inside a Dutch word |
 | `private-use` | review | Renders only in one specific font; tofu everywhere else |
+| `mark-order` | review | Marks stored in an order canonical ordering would change. `normalise` leaves these alone on purpose — see [NFC, but never reordering a mark](#nfc-but-never-reordering-a-mark) |
 | `pending-normalisation` | info | Mechanical residue a hand-edit reintroduced. Run `normalise` |
 
 ## The one thing that must never be stripped
