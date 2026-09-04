@@ -116,6 +116,27 @@ WHITESPACE_FOLD = frozenset({0x0009, 0x000A, 0x000B, 0x000C, 0x000D, 0x0085})
 # character matches ordinary French and Italian typography ("Sa'ibah", "râ'inâ").
 MOJIBAKE = re.compile("[\u00c3\u00c2\u00e2][\u0080-\u009f\u00ad]")
 
+# C1 controls (U+0080-U+009F) reviewed by hand and confirmed to be residue rather
+# than half of a mis-decoded character, keyed edition -> verses. Only these are
+# stripped; every other stray control byte is still reported and left alone.
+#
+# The gate is deliberately per verse rather than a blanket rule. ko-choi 49:10
+# carries an isolated U+0098 too, but it sits beside a broken Latin fragment --
+# evidence of real corruption, where deleting the byte would hide the damage.
+# Stripping every isolated C1 would silently rewrite that verse as well.
+#
+# ku-amin 33:36 / 33:39 / 33:40 (issue #75) meet the bar: one U+009D each, always
+# the second-to-last character between the final letter and the sentence-ending
+# stop, with the preceding words complete and nothing plausibly lost. Confirmed
+# character for character against QUL resource 144, which carries the same byte
+# -- so no re-export can fix them and there is nothing to preserve the evidence
+# for. See tools/README.md, "When a control byte can be stripped".
+STRIPPABLE_CONTROLS: dict[str, frozenset[str]] = {
+    "ku-amin": frozenset({"33:36", "33:39", "33:40"}),
+}
+
+C1_CONTROLS = frozenset(range(0x80, 0xA0))
+
 # Everything normalise_text() removes or folds. The checker reports only the
 # control characters it deliberately leaves alone -- a stray C1 byte is a
 # decoding failure, and deleting it would hide a file that needs re-exporting.
@@ -225,8 +246,12 @@ def compose_text(text: str) -> str:
     )
 
 
-def normalise_text(text: str) -> str:
-    """Apply every mechanical, meaning-preserving fix. Never changes a word."""
+def normalise_text(text: str, *, strip_controls: bool = False) -> str:
+    """Apply every mechanical, meaning-preserving fix. Never changes a word.
+
+    `strip_controls` additionally removes C1 control bytes, and is set only for
+    the verses listed in STRIPPABLE_CONTROLS -- never wholesale.
+    """
     # A verse carrying double-encoded UTF-8 is left exactly as found. Its soft
     # hyphens and C1 bytes are halves of mis-decoded characters, not residue:
     # stripping them would leave a stray "Â" behind and, worse, destroy the
@@ -242,6 +267,8 @@ def normalise_text(text: str) -> str:
             out.append(ch)
         elif cp in BIDI_CONTROLS or cp in INVISIBLE_STRIP:
             continue
+        elif strip_controls and cp in C1_CONTROLS:
+            continue
         else:
             out.append(ch)
 
@@ -255,12 +282,17 @@ def normalise_text(text: str) -> str:
     return compose_text(folded)
 
 
-def normalise_edition(data: dict) -> tuple[dict, int]:
-    """Normalise every verse. Returns the new map and the count of changed verses."""
+def normalise_edition(data: dict, name: str | None = None) -> tuple[dict, int]:
+    """Normalise every verse. Returns the new map and the count of changed verses.
+
+    `name` selects the edition's STRIPPABLE_CONTROLS entry; without it no control
+    byte is stripped, so callers that do not know the edition stay conservative.
+    """
+    strippable = STRIPPABLE_CONTROLS.get(name or "", frozenset())
     out, changed = {}, 0
     for key, value in data.items():
         text = value["t"]
-        fixed = normalise_text(text)
+        fixed = normalise_text(text, strip_controls=key in strippable)
         if fixed != text:
             changed += 1
         out[key] = {"t": fixed}

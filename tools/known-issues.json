@@ -14,10 +14,6 @@
       "missing-ayah": {
         "verses": ["108:3"],
         "why": "Absent from QUL resource 144 itself -- its ayah-by-ayah preview returns 'Translation is not available for this ayah', while three other Kurdish editions return 108:3 normally. Re-exporting will not fix it. Tracked in quranwise#71."
-      },
-      "control-character": {
-        "verses": ["33:36", "33:39", "33:40"],
-        "why": "Stray U+009D in three adjacent verses. Needs a fresh export from QUL resource 144."
       }
     },
     "ko-choi": {

@@ -109,7 +109,7 @@ def cmd_normalise(args) -> int:
 
     for path in _selected(args.editions):
         data = Q.load(path)
-        fixed, changed = Q.normalise_edition(data)
+        fixed, changed = Q.normalise_edition(data, path.stem)
         if not changed:
             continue
         total_files += 1
@@ -145,7 +145,7 @@ def cmd_convert(args) -> int:
     else:
         sys.exit("unrecognised export shape: expected an object or an array")
 
-    data, changed = Q.normalise_edition(data)
+    data, changed = Q.normalise_edition(data, args.edition)
     print(f"normalised {changed} verse(s) on import")
 
     allow = Q.allowlist().get(args.edition, {}).get("allow", [])

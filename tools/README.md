@@ -8,6 +8,7 @@ nothing checked that the shape held. Two defects found by hand in August 2026
 - `ku-amin` was missing 108:3 entirely, and had been since it was added
 - `ku-amin` carried 56 stray LRMs, two of which flipped a verse to LTR on Android
 - `dv-maldives` carried 20 literal TABs and a Latin `s` inside a Thaana word
+- `ku-amin` carried 3 stray `U+009D` control bytes, present in QUL's own resource
 
 Running the same checks across all 46 editions flagged **25 of them**. This is
 that pass, kept so the next edition doesn't repeat it.
@@ -62,6 +63,7 @@ open. The checker names it and stops.
 | Strip soft hyphen and BOM-as-ZWNBSP | Invisible, and they break substring search and copy-paste |
 | Trim leading and trailing whitespace | |
 | Compose to NFC, cluster by cluster | The same word arrived from QUL in two different encodings across editions; composing makes search, comparison and diffing behave. Applied only where it will not reorder a mark — see below |
+| Strip a C1 control byte, **only** for verses listed in `STRIPPABLE_CONTROLS` | Reviewed by hand and confirmed to be residue rather than half a mis-decoded character. `ku-amin` 33:36/33:39/33:40 (issue #75) |
 
 #### NFC, but never reordering a mark
 
@@ -98,6 +100,39 @@ bury the real fixes. NO-BREAK SPACE is left alone too: it is correct typography
 before punctuation in French and Italian, and appears legitimately in seven
 editions.
 
+#### When a control byte can be stripped
+
+`control-character` was originally report-only with no exceptions, on the
+reasoning that a stray C1 byte is a decoding failure and deleting it would hide a
+file that needs re-exporting. That reasoning holds most of the time and is still
+the default. It does not hold when **there is no export that fixes it**.
+
+`ku-amin` 33:36, 33:39 and 33:40 each carried one `U+009D`. Fetching those three
+verses from QUL resource 144 returned strings identical to ours character for
+character, `U+009D` included, at the same lengths (248 / 172 / 150). The source of
+record already has the fault, so re-exporting can never remove it and there is no
+evidence left to preserve by keeping it.
+
+Stripping is allowed only where all of this holds, verified by reading the verses:
+
+- **A fresh pull from the source shows the same byte**, so no re-export helps.
+- **Position is consistent and inert.** All three sat second-to-last, between the
+  final letter and the sentence-ending stop.
+- **The surrounding words are complete.** `سه‌رلێشێواوه`, `بپرسێته‌وه` and `زانایه`
+  are whole Kurdish words, not words missing a letter.
+- **The byte is isolated**, not the tail of a `MOJIBAKE` pair. Double-encoded
+  verses are still returned untouched by `normalise_text()`.
+
+The gate is a per-verse allowlist, `STRIPPABLE_CONTROLS` in `tools/qwtrans.py`,
+never a blanket rule — because a blanket rule would be wrong. `ko-choi` 49:10
+carries an isolated `U+0098` that fails the bar: it sits beside a broken Latin
+fragment, so the byte is a symptom of real corruption and deleting it would erase
+the evidence. It stays reported and stays in the baseline.
+
+Adding an entry is a content decision about scripture text. Read the verses, pull
+them from the source, and record the reasoning — do not fold it into a routine
+normalisation pass.
+
 ### What gets reported
 
 | Check | Severity | Meaning |
@@ -105,7 +140,7 @@ editions.
 | `missing-ayah` / `unknown-ayah` | blocker | Key set doesn't match the canonical 6,236 |
 | `empty-text` | blocker | Verse present, no text |
 | `non-prose-stub` | blocker | Value contains none of the edition's own scripts — `ha-gumi` 27:55 is the string `"49."` |
-| `control-character` | blocker | A stray C1 byte. A decoding failure; deleting it would hide a file that needs re-exporting |
+| `control-character` | blocker | A stray C1 byte, where the evidence does not support stripping it. Usually a decoding failure, and deleting it would hide a file that needs re-exporting — but see [When a control byte can be stripped](#when-a-control-byte-can-be-stripped) |
 | `double-encoded-utf8` | blocker | UTF-8 bytes re-read as cp1252 — `pl-bielawski` has 11 such verses |
 | `foreign-script` | review | A character from a script the edition doesn't use, almost always a homoglyph typo |
 | `mark-script-mismatch` | review | A combining mark on a base script it is never used with — an Arabic fatha inside a Dutch word |
@@ -160,6 +195,10 @@ preview returns "Translation is not available for this ayah", while three other
 Kurdish editions return 108:3 normally. Re-exporting will not fix it. Tracked in
 [#71]; the file is 6,235 verses by necessity, not by conversion error.
 
+`ku-amin` 33:36/33:39/33:40 carried a `U+009D` that is **also present in resource
+144 itself** — the same upstream-defect shape, but recoverable, because the byte
+carried no content. Stripped under the rule above and tracked in [#75].
+
 ## Regenerating the script tables
 
 `tools/scriptdata.py` is generated from the `regex` module's Unicode database and
@@ -173,3 +212,5 @@ python3 -m venv /tmp/venv && /tmp/venv/bin/pip install regex
 
 [#71]: https://github.com/Mohammedbilal786/quranwise/issues/71
 [#72]: https://github.com/Mohammedbilal786/quranwise/issues/72
+
+[#75]: https://github.com/Mohammedbilal786/quranwise/issues/75
