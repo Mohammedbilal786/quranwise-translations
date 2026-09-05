@@ -234,8 +234,10 @@ misses differing by one vowel, and `혱` is exactly what a different Korean
 edition (quran.com 36) shows at 49:10. That is how the corruption is known to be
 systematic rather than incidental.
 
-Two verses still carry a stray trailing `q` (17:110, 33:18), a different
-artifact and not repaired. `foreign-script` lists them.
+A stray trailing `q` on 17:110 and 33:18 was stripped separately — a different
+artifact from the CP949 damage: it sat after a space at the very end of an
+already-complete sentence, with no `\xC` prefix marking a mangled pair, and both
+independent copies agreed. `ko-choi` now reports no findings at any severity.
 
 ## Regenerating the script tables
 
