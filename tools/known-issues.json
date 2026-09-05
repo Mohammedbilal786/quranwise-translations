@@ -16,12 +16,6 @@
         "why": "Absent from QUL resource 144 itself -- its ayah-by-ayah preview returns 'Translation is not available for this ayah', while three other Kurdish editions return 108:3 normally. Re-exporting will not fix it. Tracked in quranwise#71."
       }
     },
-    "ko-choi": {
-      "control-character": {
-        "verses": ["49:10"],
-        "why": "Carries the four characters backslash, x, C, U+0098 where one Hangul syllable belongs, so the verse reads '한 ?제라' instead of '한 형제라' -- the same word spelled correctly later in that very verse. NOT fixable by re-export: QUL resource 204, quran.com translation 219 and AlQuran.cloud ko.korean all carry the same mangling (AlQuran.cloud has backslash-x-C-2 rather than backslash-x-C), and a separate Korean edition (quran.com 36) has a DIFFERENT corruption of the same syllable, so the fault is upstream of every published copy. Stripping the control byte alone would leave a visible backslash-x-C, which is worse than the invisible byte; repairing it means writing a syllable no source contains, which is a content edit and deliberately not made. Investigated under quranwise#75."
-      }
-    },
     "pl-bielawski": {
       "control-character": {
         "verses": ["3:140", "7:156", "18:94", "56:60", "69:41"],

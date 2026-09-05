@@ -32,9 +32,10 @@ runs. `convert` normalises on import and refuses to write if a blocker survives;
 
 Seven blocking findings already existed in the data when these checks were
 written, across `ku-amin`, `ko-choi`, `pl-bielawski`, `ha-gumi` and `pt-elhayek`.
-One has since been repaired rather than accepted — `ku-amin`'s three stray
-`U+009D` bytes ([#75]) — so `check` reports **six** today. That number is meant to
-fall: it is the size of the backlog, not a constant.
+Two have since been repaired rather than accepted — `ku-amin`'s three stray
+`U+009D` bytes and `ko-choi` 49:10 (both [#75]) — so `check` reports **five**
+today. That number is meant to fall: it is the size of the backlog, not a
+constant.
 
 They are recorded verse by verse in `known-issues.json` so that CI fails on new
 breakage rather than on the backlog it was added to expose.
@@ -202,6 +203,21 @@ Kurdish editions return 108:3 normally. Re-exporting will not fix it. Tracked in
 `ku-amin` 33:36/33:39/33:40 carried a `U+009D` that is **also present in resource
 144 itself** — the same upstream-defect shape, but recoverable, because the byte
 carried no content. Stripped under the rule above and tracked in [#75].
+
+`ko-choi` is corrupted upstream in a way no re-export fixes either. 49:10 carried
+the four characters `\`, `x`, `C`, `U+0098` where one Hangul syllable belongs.
+QUL resource 204, quran.com translation 219 and AlQuran.cloud `ko.korean` all
+carry the same mangling, and a different Korean edition (quran.com 36) mangles
+the same syllable differently — so the fault predates every published copy. It
+was repaired editorially to `한 형제라`, by explicit owner decision, because the
+word `형제` appears spelled correctly later in that very verse; see [#75].
+
+**Six verses in that edition are still corrupt the same way** — 16:59, 30:55,
+32:25, 33:7, 78:40 and 89:24 (twice) carry `\xCD` or `\xCg` runs where syllables
+belong. They are NOT repaired: unlike 49:10 none of them has a matching word
+elsewhere in the verse to reconstruct from, so each would be a separate guess.
+The `foreign-script` check already lists them, which is why they are visible
+without a baseline entry of their own.
 
 ## Regenerating the script tables
 
