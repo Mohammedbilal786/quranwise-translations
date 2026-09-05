@@ -212,12 +212,30 @@ the same syllable differently — so the fault predates every published copy. It
 was repaired editorially to `한 형제라`, by explicit owner decision, because the
 word `형제` appears spelled correctly later in that very verse; see [#75].
 
-**Six verses in that edition are still corrupt the same way** — 16:59, 30:55,
-32:25, 33:7, 78:40 and 89:24 (twice) carry `\xCD` or `\xCg` runs where syllables
-belong. They are NOT repaired: unlike 49:10 none of them has a matching word
-elsewhere in the verse to reconstruct from, so each would be a separate guess.
-The `foreign-script` check already lists them, which is why they are visible
-without a baseline entry of their own.
+The same corruption ran through six more verses, and those are repaired too.
+Only TWO distinct byte pairs were involved, not seven separate faults, and the
+corrupt pair is the true CP949 bytes with a constant −5 on the first byte:
+
+| corrupt run | true CP949 | syllable | occurrences |
+|---|---|---|---|
+| `\xC` + `U+0098` | `c7fc` | `형` | 49:10 |
+| `\xCg` | `c7df` | `했` | 30:55, 32:25, 33:7, 89:24 (×2) |
+| `\xCD` | `c8eb` | `흙` | 16:59, 78:40 |
+
+Because one systematic corruption produced all of them, identical runs must come
+from identical source syllables — which is what made five occurrences of `\xCg`
+one decision rather than five guesses. Each was independently confirmed by
+grammar and sense: `했` is the past tense of 하다, demanded by 되곤 ___노라,
+달리___던, 성약을 ___노라 and 선행을 ___어야 ___는데; `흙` is soil, demanded by
+"bury it in the ground" (16:59) and "I wish I were dust" (78:40).
+
+Reading the corrupt bytes as CP949 anyway yields `혱`, `헸` and `홁` — near
+misses differing by one vowel, and `혱` is exactly what a different Korean
+edition (quran.com 36) shows at 49:10. That is how the corruption is known to be
+systematic rather than incidental.
+
+Two verses still carry a stray trailing `q` (17:110, 33:18), a different
+artifact and not repaired. `foreign-script` lists them.
 
 ## Regenerating the script tables
 
