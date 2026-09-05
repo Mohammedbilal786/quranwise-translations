@@ -32,6 +32,10 @@ runs. `convert` normalises on import and refuses to write if a blocker survives;
 
 Seven blocking findings already existed in the data when these checks were
 written, across `ku-amin`, `ko-choi`, `pl-bielawski`, `ha-gumi` and `pt-elhayek`.
+One has since been repaired rather than accepted — `ku-amin`'s three stray
+`U+009D` bytes ([#75]) — so `check` reports **six** today. That number is meant to
+fall: it is the size of the backlog, not a constant.
+
 They are recorded verse by verse in `known-issues.json` so that CI fails on new
 breakage rather than on the backlog it was added to expose.
 
