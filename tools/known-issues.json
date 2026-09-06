@@ -12,29 +12,38 @@
   "accepted": {
     "ku-amin": {
       "missing-ayah": {
-        "verses": ["108:3"],
+        "verses": [
+          "108:3"
+        ],
         "why": "Absent from QUL resource 144 itself -- its ayah-by-ayah preview returns 'Translation is not available for this ayah', while three other Kurdish editions return 108:3 normally. Re-exporting will not fix it. Tracked in quranwise#71."
       }
     },
     "pl-bielawski": {
-      "control-character": {
-        "verses": ["3:140", "7:156", "18:94", "56:60", "69:41"],
-        "why": "C1 bytes left by the same double-encoding as below. Re-export rather than patch."
-      },
       "double-encoded-utf8": {
-        "verses": ["3:140", "6:136", "6:138", "6:145", "7:135", "7:148", "7:156", "18:94", "20:131", "56:60", "69:41"],
-        "why": "UTF-8 read as cp1252 across 11 verses. The whole file needs re-exporting from QUL; normalisation deliberately skips these verses so the evidence survives."
+        "verses": [
+          "6:136",
+          "6:138",
+          "6:145",
+          "7:135",
+          "7:148",
+          "20:131"
+        ],
+        "why": "UTF-8 read as cp1252. The 5 verses whose sequences carried C1 controls (3:140, 7:156, 18:94, 56:60, 69:41) were repaired by hand -- see qwtrans.MOJIBAKE_REPAIRS. These 6 remain: each is U+00C2 followed by a soft hyphen, i.e. a double-encoded U+00AD. The reader sees a stray 'A-hat' before an invisible character. Not repaired because, unlike the other five, the intended character is itself invisible and its purpose in the sentence is unclear -- awaiting a decision on whether to restore the soft hyphen or drop the pair entirely."
       }
     },
     "ha-gumi": {
       "non-prose-stub": {
-        "verses": ["27:55"],
+        "verses": [
+          "27:55"
+        ],
         "why": "The value is the string '49.' rather than a translation. Needs checking against the QUL source."
       }
     },
     "pt-elhayek": {
       "non-prose-stub": {
-        "verses": ["55:28"],
+        "verses": [
+          "55:28"
+        ],
         "why": "The value is '.' rather than a translation. Needs checking against the QUL source."
       }
     }

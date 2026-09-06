@@ -137,6 +137,46 @@ STRIPPABLE_CONTROLS: dict[str, frozenset[str]] = {
 
 C1_CONTROLS = frozenset(range(0x80, 0xA0))
 
+# Double-decoded UTF-8 sequences repaired by hand, keyed edition -> verses.
+#
+# DIFFERENT MECHANISM FROM STRIPPABLE_CONTROLS ABOVE, and deliberately so.
+# There, an isolated C1 byte is residue and deleting it loses nothing. Here the
+# C1 byte is HALF OF A REAL CHARACTER: "\u00e2\u0080\u0093" is the three bytes
+# of an en dash read as Latin-1. Stripping the controls would leave a bare "â"
+# behind -- visibly worse than the defect -- which is exactly why
+# normalise_text() bails out on any verse matching MOJIBAKE and why this table
+# has to put the intended character back rather than remove anything.
+#
+# Gated per verse for the same reason STRIPPABLE_CONTROLS is: a blanket rule
+# would rewrite text nobody has read. Each verse below was inspected
+# individually and the intended punctuation is unambiguous from context.
+MOJIBAKE_REPAIRS: dict[str, frozenset[str]] = {
+    "pl-bielawski": frozenset({"3:140", "7:156", "18:94", "56:60", "69:41"}),
+}
+
+# The only sequences this repairs. Anything else stays untouched and keeps
+# tripping the checker, so a genuinely mis-exported file still gets reported.
+_MOJIBAKE_SEQUENCES = {
+    "\u00e2\u0080\u0093": "\u2013",  # EN DASH
+    "\u00e2\u0080\u0099": "\u2019",  # RIGHT SINGLE QUOTATION MARK
+    "\u00e2\u0080\u009d": "\u201d",  # RIGHT DOUBLE QUOTATION MARK
+}
+
+
+def repair_mojibake(text: str) -> str:
+    """Put back the characters a Latin-1 misread broke apart.
+
+    Returns the text unchanged if any C1 control survives the pass -- that means
+    a sequence outside _MOJIBAKE_SEQUENCES is present, and a partial repair
+    would both corrupt the verse and hide the rest of the damage.
+    """
+    fixed = text
+    for broken, intended in _MOJIBAKE_SEQUENCES.items():
+        fixed = fixed.replace(broken, intended)
+    if any(0x80 <= ord(ch) <= 0x9F for ch in fixed):
+        return text
+    return fixed
+
 # Everything normalise_text() removes or folds. The checker reports only the
 # control characters it deliberately leaves alone -- a stray C1 byte is a
 # decoding failure, and deleting it would hide a file that needs re-exporting.
@@ -318,11 +358,15 @@ def normalise_edition(data: dict, name: str | None = None) -> tuple[dict, int]:
         return data, 0
 
     strippable = STRIPPABLE_CONTROLS.get(name or "", frozenset())
+    repairable = MOJIBAKE_REPAIRS.get(name or "", frozenset())
     out, changed = {}, 0
     for key, value in data.items():
-        text = value["t"]
+        original = value["t"]
+        # Repair BEFORE normalise_text, which bails out on any verse still
+        # matching MOJIBAKE and would otherwise return it untouched.
+        text = repair_mojibake(original) if key in repairable else original
         fixed = normalise_text(text, strip_controls=key in strippable)
-        if fixed != text:
+        if fixed != original:
             changed += 1
         out[key] = {**value, "t": fixed}
     return out, changed
