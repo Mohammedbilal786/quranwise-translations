@@ -282,12 +282,41 @@ def normalise_text(text: str, *, strip_controls: bool = False) -> str:
     return compose_text(folded)
 
 
+# Editions whose SOURCE LICENCE forbids altering the text, so the mechanical
+# normalisation above must not touch them at all.
+#
+# ka-rwwad comes from QuranEnc.com, not QUL, and is re-published under terms
+# whose first condition is "No modification, addition, or deletion of the
+# content" -- with no de-minimis carve-out for whitespace. Its 146 verses
+# carrying literal newlines are the source's own line breaks, and folding them
+# to spaces would be exactly the modification the licence prohibits. Keeping
+# them is a deliberate decision by the app owner, not an oversight, so
+# `check` reporting them as "pending-normalisation" is expected and must stay
+# unresolved.
+#
+# Distinct from STRIPPABLE_CONTROLS above, which is an opt-IN to one extra
+# repair for named verses. This is an opt-OUT of all of them for a whole
+# edition, and the justification bar is different: a written term forbidding
+# modification, not a hand review of the damage.
+UNMODIFIABLE = frozenset({"ka-rwwad"})
+
+
 def normalise_edition(data: dict, name: str | None = None) -> tuple[dict, int]:
     """Normalise every verse. Returns the new map and the count of changed verses.
 
     `name` selects the edition's STRIPPABLE_CONTROLS entry; without it no control
     byte is stripped, so callers that do not know the edition stay conservative.
+    It also gates UNMODIFIABLE, which skips normalisation for the edition
+    entirely.
+
+    Preserves every field on each entry, not just "t". Rebuilding entries as
+    {"t": ...} silently dropped any other key -- which would have deleted all
+    372 of ka-rwwad's footnote bodies the first time this ran over it, and
+    deleting a footnote is a content deletion under that edition's terms.
     """
+    if name in UNMODIFIABLE:
+        return data, 0
+
     strippable = STRIPPABLE_CONTROLS.get(name or "", frozenset())
     out, changed = {}, 0
     for key, value in data.items():
@@ -295,7 +324,7 @@ def normalise_edition(data: dict, name: str | None = None) -> tuple[dict, int]:
         fixed = normalise_text(text, strip_controls=key in strippable)
         if fixed != text:
             changed += 1
-        out[key] = {"t": fixed}
+        out[key] = {**value, "t": fixed}
     return out, changed
 
 

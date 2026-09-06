@@ -63,6 +63,56 @@ CI runs `versions --check` and fails the build if it is out of date.
 
 Licensing varies per translation — see [QUL's translations page](https://qul.tarteel.ai/resources/translation) for the license note on each individual resource before adding more files here. Translations explicitly marked "© copyrighted" on that page are not included.
 
+### `ka-rwwad` is not from QUL — read this before touching it
+
+Every other translation here came from QUL. The Georgian edition did not: QUL's
+own Georgian resource stops at surah 6 (899 of 6,236 verses), an upstream gap
+that re-downloading does not fix. `translations/ka-rwwad.json` comes from
+**QuranEnc.com**, translation key `georgian_rwwad`, **version 1.0.7 (2026-07-28)**,
+fetched from `GET https://quranenc.com/api/v1/translation/sura/georgian_rwwad/{n}`
+and verified at 6,236/6,236 verses against the canonical per-surah counts.
+
+Credit: *Rowwad Translation Center, in cooperation with the Rabwah Dawah
+Association, the Islamic Content Service Association in Languages, and the
+IslamHouse.com website.*
+
+QuranEnc **expressly permit re-publishing** — a stronger position than QUL's
+silence — on seven conditions, quoted verbatim from the terms modal on every
+page of their site:
+
+> Contents of the translations can be downloaded and re-published, with the following terms and conditions:
+> 1. No modification, addition, or deletion of the content.
+> 2. Clearly referring to the publisher and the source (QuranEnc.com).
+> 3. Mentioning the version number when re-publishing the translation.
+> 4. Keeping the transcript information inside the document.
+> 5. Notifying the source (QuranEnc.com) of any note on the translation.
+> 6. Updating the translation according to the latest version issued from the source (QuranEnc.com).
+> 7. Inappropriate advertisements must not be included when displaying translations of the meanings of the Noble Quran.
+
+What that means in practice for this repo:
+
+- **The file is stored exactly as fetched.** No normalisation was applied. In
+  particular the **146 verses containing literal newlines are deliberately
+  preserved** — they are the source's own line breaks, and folding them to
+  spaces is the modification term 1 prohibits. `qwt.py check` therefore reports
+  a standing `pending-normalisation` finding for this edition. **That finding is
+  expected and must stay unresolved. Do not run `qwt.py normalise` to "fix" it.**
+  `qwtrans.UNMODIFIABLE` enforces this in code so the tooling cannot rewrite the
+  file by accident.
+- **372 verses carry a `f` footnote body** alongside `t`, paired exactly with an
+  inline `[1]`-style marker in the translation. Dropping them would orphan the
+  markers and delete content under terms 1 and 4. This is the only edition here
+  with a second field; `normalise_edition` preserves all fields for that reason.
+- **Terms 2 and 3 are satisfied in the app**, not just here — Reading
+  Preferences shows a source line naming QuranEnc.com and the version. See
+  `translationSourceNote` in the app repo.
+- **Term 6 is an ongoing obligation.** QuranEnc still flag this translation as
+  "in progress", so revisions should be expected. The version is exposed nowhere
+  in their API (and `georgian_rwwad` is absent from `/translations/list` for the
+  same reason), so it has to be read off the website. On any re-fetch, bump both
+  the version above and `QURANENC_GEORGIAN_VERSION` in the app.
+- **Term 5**: report corrections via `POST https://quranenc.com/api/v1/translations/note`.
+
 ## Files
 
 | File | Language | Translator |
@@ -72,6 +122,7 @@ Licensing varies per translation — see [QUL's translations page](https://qul.t
 | `translations/ru-kuliev.json` | Russian | Elmir Kuliev |
 | `translations/zh-majian.json` | Chinese (Simplified) | Ma Jian |
 | `translations/ur-jalandhry.json` | Urdu | Fatah Muhammad Jalandhari |
+| `translations/ka-rwwad.json` | Georgian | Rowwad Translation Center (via QuranEnc.com, **not** QUL) |
 
 ## `topics/topics.json`
 
