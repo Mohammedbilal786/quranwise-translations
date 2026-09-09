@@ -1,9 +1,11 @@
 {
   "morphology/morphology.json": "c89b11c38b2b",
+  "morphology/quran-morphology-corpus.txt": "742bfac59941",
   "mushaf-layout/indopak-13-lines-taj.json": "2939152051fc",
   "mushaf-layout/indopak-16-lines-taj.json": "acaaf5be78ef",
   "mushaf-layout/words-indopak-nastaleeq.json": "6cc7807d9737",
   "quran-script/digital-khatt-indopak.json": "75da4601d711",
+  "quran-script/qpc-hafs.json": "93864197a949",
   "similar-ayahs/similar-ayahs.json": "1bc8fc9e6dc4",
   "topics/topics.json": "c1402a3a695b",
   "translations/am-sadiq.json": "ae25d6080ca4",

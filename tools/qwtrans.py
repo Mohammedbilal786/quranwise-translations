@@ -592,13 +592,28 @@ def editions() -> list[Path]:
 # the cache actually needs.
 
 
+# Extensions the app actually fetches. `.txt` is here for the Quranic Arabic
+# Corpus export (morphology/quran-morphology-corpus.txt), which is a tab-
+# separated text file rather than JSON -- it was invisible to the manifest
+# while this only globbed *.json, which would have left it the one dataset
+# that could never be revalidated. Documentation (*.md) stays out: the app
+# never fetches it, and hashing it would churn the manifest for prose edits.
+DATA_SUFFIXES = (".json", ".txt")
+
+
 def data_files() -> list[Path]:
     """Every file the app fetches, relative order stable for a stable manifest."""
     found: list[Path] = []
     for name in DATA_DIRS:
         directory = REPO / name
         if directory.is_dir():
-            found.extend(sorted(directory.rglob("*.json")))
+            found.extend(
+                sorted(
+                    path
+                    for path in directory.rglob("*")
+                    if path.is_file() and path.suffix in DATA_SUFFIXES
+                )
+            )
     return found
 
 
