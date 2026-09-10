@@ -32,3 +32,57 @@ jobs:
       # manifest ships to nobody who already has the old copy.
       - name: Confirm versions.json matches the data
         run: python3 tools/qwt.py versions --check
+
+      # jsdelivr serves the mutable @main ref with max-age=604800, so a
+      # validated push can take a week to reach an edge that has the old copy.
+      # Only the manifest needs purging: every data file is fetched with a
+      # ?v=<content hash> stamp that versions.json supplies, so once the fresh
+      # manifest is visible the rest follows. Runs last, so it only fires when
+      # the checks above passed, and only for main -- never for a pull
+      # request, which has not changed what jsdelivr serves. A manual
+      # workflow_dispatch on main purges too, which is the way to force a
+      # refresh without inventing a data commit.
+      - name: Purge the jsdelivr cache for versions.json
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          url='https://purge.jsdelivr.net/gh/Mohammedbilal786/quranwise-translations@main/versions.json'
+          # Kept out of the checkout so it can't show up as a stray file.
+          body="${RUNNER_TEMP:-.}/jsdelivr-purge.json"
+          code=$(curl -sS --max-time 60 --retry 3 --retry-all-errors \
+                   -o "$body" -w '%{http_code}' "$url")
+          echo "HTTP $code from $url"
+          echo "--- response ---"
+          cat "$body"
+          echo
+          python3 - "$code" "$body" <<'PY'
+          import json, sys
+
+          code, body_path = sys.argv[1], sys.argv[2]
+          if code != '200':
+              sys.exit(f'::error::jsdelivr purge returned HTTP {code}, not 200')
+
+          try:
+              body = json.load(open(body_path))
+          except json.JSONDecodeError as exc:
+              sys.exit(f'::error::jsdelivr purge returned unparseable body: {exc}')
+
+          status = body.get('status')
+          if status not in ('finished', 'pending'):
+              sys.exit(f'::error::jsdelivr purge status is {status!r}, not finished/pending')
+
+          paths = body.get('paths') or {}
+          if not paths:
+              sys.exit('::error::jsdelivr purge acknowledged no paths')
+
+          for path, result in paths.items():
+              # A throttled purge is jsdelivr declining a repeat within its
+              # rate window, not a failure -- the earlier purge still stands.
+              if isinstance(result, dict) and result.get('throttled'):
+                  print(f'::warning::jsdelivr throttled the purge of {path}; '
+                        'a recent purge already covers it')
+              else:
+                  print(f'Purged {path}')
+
+          print(f"jsdelivr purge {status} (id {body.get('id')})")
+          PY
