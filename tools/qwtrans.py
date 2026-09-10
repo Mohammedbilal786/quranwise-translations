@@ -48,6 +48,7 @@ DATA_DIRS = (
     "transliteration",
     "mushaf-layout",
     "quran-script",
+    "audio-segments",
 )
 
 VERSIONS = REPO / "versions.json"
