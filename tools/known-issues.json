@@ -28,7 +28,7 @@
           "7:148",
           "20:131"
         ],
-        "why": "UTF-8 read as cp1252. The 5 verses whose sequences carried C1 controls (3:140, 7:156, 18:94, 56:60, 69:41) were repaired by hand -- see qwtrans.MOJIBAKE_REPAIRS. These 6 remain: each is U+00C2 followed by a soft hyphen, i.e. a double-encoded U+00AD. The reader sees a stray 'A-hat' before an invisible character. Not repaired because, unlike the other five, the intended character is itself invisible and its purpose in the sentence is unclear -- awaiting a decision on whether to restore the soft hyphen or drop the pair entirely."
+        "why": "UTF-8 read as cp1252. The 5 verses whose sequences carried C1 controls (3:140, 7:156, 18:94, 56:60, 69:41) were repaired by hand -- see qwtrans.MOJIBAKE_REPAIRS. 7:161 was repaired the same way later: the same damage read through ISO-8859-2 rather than cp1252, so it surfaced as U+00C2 followed by T-caron/t-caron instead of a C1 control and the original detector could not match it at all. These 6 remain: each is U+00C2 followed by a soft hyphen, i.e. a double-encoded U+00AD. The reader sees a stray 'A-hat' before an invisible character. Not repaired because, unlike the others, the intended character is itself invisible and its purpose in the sentence is unclear -- awaiting a decision on whether to restore the soft hyphen or drop the pair entirely."
       }
     },
     "ha-gumi": {

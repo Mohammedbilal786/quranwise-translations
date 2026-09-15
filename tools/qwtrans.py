@@ -115,7 +115,17 @@ WHITESPACE_FOLD = frozenset({0x0009, 0x000A, 0x000B, 0x000C, 0x000D, 0x0085})
 # A-circumflex / a-circumflex followed by a C1 control or soft hyphen. Narrowed
 # to a C1 continuation deliberately: allowing cp1252 punctuation as the second
 # character matches ordinary French and Italian typography ("Sa'ibah", "râ'inâ").
-MOJIBAKE = re.compile("[\u00c3\u00c2\u00e2][\u0080-\u009f\u00ad]")
+#
+# The second alternative is that same damage read through ISO-8859-2 rather than
+# cp1252, which is what a Central European export pipeline does. Latin-2 has no
+# undefined C1 positions, so the continuation byte surfaces as an ordinary letter
+# and the first alternative never fires: U+00AB and U+00BB encode to C2 AB and
+# C2 BB, and Latin-2 renders AB and BB as T-caron and t-caron. Deliberately
+# limited to that one pair rather than the whole Latin-2 continuation range
+# (0xA0-0xBF), because most of that range is ordinary Polish and Czech letters,
+# and A-circumflex followed by a letter is ordinary Vietnamese and French --
+# vi-abdulkarim alone carries 123 legitimate U+00C2 verses.
+MOJIBAKE = re.compile("[\u00c3\u00c2\u00e2][\u0080-\u009f\u00ad]|\u00c2[\u0164\u0165]")
 
 # C1 controls (U+0080-U+009F) reviewed by hand and confirmed to be residue rather
 # than half of a mis-decoded character, keyed edition -> verses. Only these are
@@ -152,7 +162,7 @@ C1_CONTROLS = frozenset(range(0x80, 0xA0))
 # would rewrite text nobody has read. Each verse below was inspected
 # individually and the intended punctuation is unambiguous from context.
 MOJIBAKE_REPAIRS: dict[str, frozenset[str]] = {
-    "pl-bielawski": frozenset({"3:140", "7:156", "18:94", "56:60", "69:41"}),
+    "pl-bielawski": frozenset({"3:140", "7:156", "18:94", "56:60", "69:41", "7:161"}),
 }
 
 # The only sequences this repairs. Anything else stays untouched and keeps
@@ -161,6 +171,10 @@ _MOJIBAKE_SEQUENCES = {
     "\u00e2\u0080\u0093": "\u2013",  # EN DASH
     "\u00e2\u0080\u0099": "\u2019",  # RIGHT SINGLE QUOTATION MARK
     "\u00e2\u0080\u009d": "\u201d",  # RIGHT DOUBLE QUOTATION MARK
+    # Read through ISO-8859-2 rather than cp1252 -- see MOJIBAKE above. The pair
+    # brackets a quotation, and pl-bielawski 7:161 is the only verse carrying it.
+    "\u00c2\u0164": "\u00ab",        # LEFT-POINTING DOUBLE ANGLE QUOTATION MARK
+    "\u00c2\u0165": "\u00bb",        # RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK
 }
 
 
