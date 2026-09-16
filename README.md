@@ -272,3 +272,184 @@ Flat map keyed `"<surah>:<ayah>"` → string, all 6,236 ayahs:
   "1:1": "Bismil laahir Rahmaanir Raheem"
 }
 ```
+
+## `audio-segments/`
+
+Word-level recitation timing data — the millisecond start and end of every word as
+actually recited — together with the audio URLs those timings were measured
+against. This is what lets the [quranwise](https://github.com/Mohammedbilal786/quranwise)
+app highlight the word currently being recited during playback (quranwise#85).
+It is numeric alignment data, not Qur'an wording: no Arabic text, no translation.
+
+Two recitations are published here, and deliberately only two — see **Why only
+these two** below before adding a third.
+
+- `audio-segments/abdul-basit-mujawwad.json` + `audio-segments/abdul-basit-mujawwad-surahs.json`
+  — QUL's [Abdul Basit Abdul Samad, Surah by Surah](https://qul.tarteel.ai/resources/recitation/abdul-basit-mujawwad-recitation)
+  recitation (Mujawwad, Hafs, with segments). QUL offers this one at
+  letter-level granularity as well — the only catalog entry that did when
+  quranwise#85 surveyed it — but the word-level export is what is hosted here,
+  since nothing highlights finer than a word.
+- `audio-segments/hani-ar-rifai.json` — QUL's [Hani ar-Rifai Recitation, Ayah by
+  Ayah](https://qul.tarteel.ai/resources/recitation/104) (Murattal, Hafs, with
+  segments).
+
+Both carry all 6,236 ayahs.
+
+### What consumes them
+
+One file in the app: `src/api/qulAudioSegments.ts`, and within it one entry
+point, `fetchTimingsForReciter(surahNumber, reciterId, preferWholeSurah)`. Four
+different sources sit behind it, and callers are not meant to care which one
+answered — what travels downstream is whether an entry carries a playback
+`window`, not where it came from.
+
+| condition, in the order the function tests them | timing source |
+|---|---|
+| reciter id `1001` (Abdul Basit Mujawwad) | `abdul-basit-mujawwad.json` + `-surahs.json`, hosted here |
+| `preferWholeSurah` — 8 reciters | QUL's whole-surah export zips, hot-linked straight from QUL's static CDN. **Not hosted here**; see `WHOLE_SURAH_ZIP_SOURCES` in the app's `src/reading/reciters.ts` |
+| reciter id `5` (Hani ar-Rifai) | `hani-ar-rifai.json`, hosted here |
+| everything else | `api.quran.com`'s own word segments |
+
+The ordering is load-bearing: `preferWholeSurah` is tested *before* the Rifai
+branch, so a "play this surah start to finish" request for Hani ar-Rifai is
+served by QUL's whole-surah zip rather than by the file here. Only the per-ayah
+path reaches `hani-ar-rifai.json`.
+
+### Format
+
+`abdul-basit-mujawwad.json` is a flat map keyed `"<surah>:<ayah>"`, each value
+carrying QUL's `[wordNumber, startMs, endMs]` triples plus the ayah's own span:
+
+```json
+{
+  "1:1": {
+    "segments": [[1, 0, 960], [2, 960, 1470], [3, 1470, 2720], [4, 2720, 6480]],
+    "duration_sec": 6,
+    "duration_ms": 6480,
+    "timestamp_from": 0,
+    "timestamp_to": 6480
+  }
+}
+```
+
+**Those timestamps are absolute within the surah's audio file, not relative to
+the ayah**, and they reset at each surah — they are only valid against the
+surah-level MP3s named in the companion file, which is a flat map keyed by surah
+number:
+
+```json
+{
+  "1": {
+    "surah_number": 1,
+    "audio_url": "https://audio-cdn.tarteel.ai/quran/surah/abdulBasit/mujawwad/mp3/001.mp3",
+    "duration": 78
+  }
+}
+```
+
+A word may also appear more than once per ayah here: Mujawwad repeats phrases,
+so 606 ayahs hold several spans for the same word number. Join on the distinct
+word number, never on the span count.
+
+`hani-ar-rifai.json` is per-ayah audio and per-ayah timings, so each entry
+carries its own URL and its segments start at zero:
+
+```json
+{
+  "1:1": {
+    "audio_url": "https://audio.qurancdn.com/Rifai/mp3/001001.mp3",
+    "segments": [[2, 0, 1810], [3, 1820, 2770], [4, 2780, 3710]]
+  }
+}
+```
+
+### Why only these two
+
+Seven QUL ayah-by-ayah exports were evaluated for quranwise#85. Six were
+rejected, on two grounds that are independent of each other — fixing either one
+would not clear the other.
+
+**Data quality.** Roughly a quarter of every segment in the six is a short
+placeholder rather than a measured word boundary. Counting a segment as a stub
+when `end - start <= 110 ms`, measured across the full exports rather than
+sampled:
+
+| export | median segment | stub rate |
+|---|---|---|
+| Abdul Basit Abdul Samad, Murattal | 640 ms | 26.38% |
+| Abdul Rahman Al-Sudais | 480 ms | 26.31% |
+| Abu Bakr Al-Shatri | 520 ms | 26.25% |
+| Mahmoud Khalil Al-Husary | 760 ms | 26.35% |
+| Mishari Rashid Al-Afasy | 560 ms | 26.38% |
+| Saud Al-Shuraim | 440 ms | 26.38% |
+| **Hani ar-Rifai — published** | **1010 ms** | **0.27%** |
+
+Highlighting off that data would sit on a word for a tenth of a second and then
+track nothing through the gap. The threshold is stated because it moves the
+digits and not the conclusion — at a wider `<= 150 ms` window the same
+measurement gives 26.7–27.0% against 0.41%, which is where the slightly
+different figures in commit `8fe904b` come from.
+
+Note this is *not* a verdict on QUL's whole-surah exports for the same reciters.
+Those are a different and far better export — the Afasy one measures 0.08% on
+the same `<= 110 ms` test — and they are what `preferWholeSurah` hot-links.
+
+**Licensing.** Separately, the six are ambiguous in a way the published Rifai
+file is not. Every `audio_url` in them points into `audio-cdn.tarteel.ai` — six
+exports × 6,236 ayahs is an index of ~37,400 direct links into Tarteel's own
+hosting of someone else's performed recitation. Republishing that is closer to
+redistributing an index of their media library than to shipping structural data.
+`hani-ar-rifai.json` points at `audio.qurancdn.com`, which is Quran.com's public
+CDN and already the app's own `AUDIO_CDN_BASE` (`src/api/quranAudio.ts`) — the
+app calls it openly for every non-QUL reciter, so the file names a host this
+project already uses rather than opening a new one.
+
+To be straight about it, that contrast is not absolute: the published
+`abdul-basit-mujawwad-surahs.json` does carry 114 `audio-cdn.tarteel.ai` URLs of
+its own. It is one link per surah rather than one per ayah, and QUL is the only
+source that exists for that recitation's timings at all, but it is the one place
+this repo points at Tarteel's hosting and it should not be discovered by
+surprise later.
+
+One of the six carries a third problem on top of both of these: the export
+labelled *Mahmoud Khalil Al-Husary, Murattal* in fact points at the **Muallim**
+(teaching-pace) recitation throughout — a different performance under the wrong
+name. See quranwise#105 before that export is adopted under any Al-Husary label.
+
+**Do not revisit hosting the six** unless QUL's underlying alignment improves
+*and* the licensing question is answered. One or the other is not enough.
+
+### Reproducing these files
+
+`audio-segments` is in `qwtrans.DATA_DIRS`, so [`versions.json`](#versionsjson)
+covers these files like any other — same rule, regenerate it in the same commit.
+Those values are `sha256(file bytes).hexdigest()[:12]` (`content_version` in
+`tools/qwtrans.py`), hashed from bytes and so blind to formatting.
+
+- **The Mujawwad files are byte-identical to the source export.** The zip's
+  `segments.json` and `surah.json` hash to `ddc4aa08d941` and `5f7dd33e2d62` —
+  exactly their `versions.json` entries. Nothing was transformed, so a
+  re-download either reproduces them precisely or tells you QUL regenerated the
+  export.
+- **`hani-ar-rifai.json` is sanitised, not raw**, and so is not byte-identical —
+  but it is deterministically reproducible. Sort each ayah's segments by
+  `(start, end)`, then give every zero- or negative-length span an end at the
+  next word's start, floored at `start + 10 ms`. 19 spans in the source needed
+  that repair and 15 of them hit the floor. Replaying those two steps over the
+  source zip reproduces all 6,236 ayahs exactly. The 34 ayahs that are missing a
+  word's segment outright are deliberately left alone — nothing can invent them,
+  and they degrade to no highlight in the app.
+
+### Keep the source zips — they cannot be re-downloaded unattended
+
+The exports these were built from live in the **app** repo's `.scratch/`
+directory, which is gitignored there and committed nowhere in either repo. Keep
+them.
+
+QUL's download endpoint is now behind a login: `GET
+/resources/recitation/<id>/download` answers `302` to
+`https://qul.tarteel.ai/users/sign_in`. Its on-page resource preview is gated
+the same way. So neither CI nor any script here can re-fetch a source export or
+re-verify one against its origin, and if the local zips are lost the
+reproduction recipe above has nothing left to run against.
