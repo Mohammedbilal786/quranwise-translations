@@ -162,7 +162,15 @@ C1_CONTROLS = frozenset(range(0x80, 0xA0))
 # would rewrite text nobody has read. Each verse below was inspected
 # individually and the intended punctuation is unambiguous from context.
 MOJIBAKE_REPAIRS: dict[str, frozenset[str]] = {
-    "pl-bielawski": frozenset({"3:140", "7:156", "18:94", "56:60", "69:41", "7:161"}),
+    "pl-bielawski": frozenset({
+        "3:140", "7:156", "18:94", "56:60", "69:41", "7:161",
+        # U+00C2 + U+00AD, a double-encoded SOFT HYPHEN, dropped whole rather
+        # than restored -- see _SOFT_HYPHEN_PAIR below. Authorised by the app
+        # owner as a specific content decision, not a general rule. 6:136
+        # carries two occurrences; seven across the six verses, and they are
+        # the only soft hyphens anywhere in the repo.
+        "6:136", "6:138", "6:145", "7:135", "7:148", "20:131",
+    }),
 }
 
 # The only sequences this repairs. Anything else stays untouched and keeps
@@ -177,6 +185,22 @@ _MOJIBAKE_SEQUENCES = {
     "\u00c2\u0165": "\u00bb",        # RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK
 }
 
+# The one mis-decoded sequence that is DROPPED rather than put back: U+00C2
+# followed by U+00AD, the two bytes of a SOFT HYPHEN read as Latin-1. The
+# intended character is itself invisible and its role in the sentence is not
+# recoverable, so restoring it would only re-hide the damage; the app owner
+# authorised dropping the pair outright for the six pl-bielawski verses listed
+# in MOJIBAKE_REPAIRS.
+#
+# Matched with its flanking spaces because deleting the two characters on their
+# own leaves a VISIBLE DOUBLE SPACE wherever the pair sat between two words --
+# 6:136, 6:138 and 7:148 all do. React Native's <Text> does not collapse
+# whitespace, and normalise_text() deliberately leaves runs of ordinary spaces
+# alone, so nothing downstream would tidy it up. A match that swallowed any
+# space collapses to exactly one; a match with no space either side leaves
+# nothing behind, which is right for "twierdz\u0105,<pair> a" and "\u015bwiecie<pair> by".
+_SOFT_HYPHEN_PAIR = re.compile(" *\u00c2\u00ad *")
+
 
 def repair_mojibake(text: str) -> str:
     """Put back the characters a Latin-1 misread broke apart.
@@ -188,6 +212,9 @@ def repair_mojibake(text: str) -> str:
     fixed = text
     for broken, intended in _MOJIBAKE_SEQUENCES.items():
         fixed = fixed.replace(broken, intended)
+    fixed = _SOFT_HYPHEN_PAIR.sub(
+        lambda m: " " if " " in m.group(0) else "", fixed
+    )
     if any(0x80 <= ord(ch) <= 0x9F for ch in fixed):
         return text
     return fixed
@@ -311,7 +338,9 @@ def normalise_text(text: str, *, strip_controls: bool = False) -> str:
     # hyphens and C1 bytes are halves of mis-decoded characters, not residue:
     # stripping them would leave a stray "Â" behind and, worse, destroy the
     # signature the checker uses to report the file as needing a re-export.
-    # pl-bielawski is the one edition this applies to today.
+    # No edition in the repo trips this today -- pl-bielawski was the last, and
+    # its verses are all repaired through MOJIBAKE_REPAIRS now. The guard stays
+    # for the next mis-exported file.
     if MOJIBAKE.search(text):
         return text
 

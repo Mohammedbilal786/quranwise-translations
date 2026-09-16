@@ -32,9 +32,9 @@ runs. `convert` normalises on import and refuses to write if a blocker survives;
 
 Seven blocking findings already existed in the data when these checks were
 written, across `ku-amin`, `ko-choi`, `pl-bielawski`, `ha-gumi` and `pt-elhayek`.
-Two have since been repaired rather than accepted — `ku-amin`'s three stray
-`U+009D` bytes and `ko-choi` 49:10 (both [#75]) — so `check` reports **five**
-today. That number is meant to fall: it is the size of the backlog, not a
+Three have since been repaired rather than accepted — `ku-amin`'s three stray
+`U+009D` bytes, `ko-choi` 49:10 (both [#75]) and `pl-bielawski`'s twelve
+double-encoded verses — so `check` reports **three** today. That number is meant to fall: it is the size of the backlog, not a
 constant.
 
 They are recorded verse by verse in `known-issues.json` so that CI fails on new
@@ -146,7 +146,7 @@ normalisation pass.
 | `empty-text` | blocker | Verse present, no text |
 | `non-prose-stub` | blocker | Value contains none of the edition's own scripts — `ha-gumi` 27:55 is the string `"49."` |
 | `control-character` | blocker | A stray C1 byte, where the evidence does not support stripping it. Usually a decoding failure, and deleting it would hide a file that needs re-exporting — but see [When a control byte can be stripped](#when-a-control-byte-can-be-stripped) |
-| `double-encoded-utf8` | blocker | UTF-8 bytes re-read as cp1252 — `pl-bielawski` has 11 such verses |
+| `double-encoded-utf8` | blocker | UTF-8 bytes re-read as cp1252. `pl-bielawski` had 12 such verses; all are repaired, so no edition trips this today |
 | `foreign-script` | review | A character from a script the edition doesn't use, almost always a homoglyph typo |
 | `mark-script-mismatch` | review | A combining mark on a base script it is never used with — an Arabic fatha inside a Dutch word |
 | `private-use` | review | Renders only in one specific font; tofu everywhere else |
