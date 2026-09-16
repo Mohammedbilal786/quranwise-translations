@@ -23,7 +23,7 @@
         "verses": [
           "27:55"
         ],
-        "why": "The value is the string '49.' rather than a translation. Needs checking against the QUL source."
+        "why": "PREVIOUSLY MIS-FRAMED HERE as an isolated stub needing a check against the QUL source. It is not isolated. It is the TAIL MARKER OF A SIX-VERSE MISALIGNMENT, and '49.' is the orphaned ROW NUMBER of the verse that was deleted. Canonical 27:49 ('Take a mutual oath by Allah that we will kill him by night') is absent from this edition altogether. Slots 27:49 through 27:54 each hold the NEXT canonical ayah -- 27:49 holds canonical 27:50, 27:54 holds canonical 27:55 -- and the shift terminates at 27:55, where the leftover slot was filled with the deleted row's number instead of text. 27:48 and 27:56 are both correct. Verified verse by verse against en-sahih. So the damage is a MISSING VERSE plus six misplaced ones, not one bad cell: repairing 27:55 alone would leave six verses still wrong and silently hide the real defect. Same shape as the cs-czech and pl-bielawski fault above -- a row deleted, the block below shifted up by one, filler in the last slot -- though this is a Hausa edition, so if that mechanism is shared it is the export tooling and not a Central European locale. Needs a decision of its own; nothing here may be repaired by rule."
       }
     },
     "pt-elhayek": {
@@ -35,6 +35,18 @@
       }
     },
     "cs-czech": {
+      "dropped": {
+        "decision": "DROPPED FROM THE APP by the owner. Do not re-add this edition without reading this entry first.",
+        "unrecoverable-verses": [
+          "17:32",
+          "30:18",
+          "56:2",
+          "56:13"
+        ],
+        "shifted-range": "17:32-17:81",
+        "why": "Four verses cannot be recovered from this file, and there is no alternative QUL resource for the edition to re-export from. The translator is unlisted on QUL, so there is nobody to ask. 30:18, 56:2 and 56:13 are the spreadsheet error literal '#NAZEV?' -- see the error-literal entry below; their text was never in the export. 17:32 is lost to the shift described next. The data file is deliberately KEPT in this repo: it is the evidence for the shared-pipeline hypothesis below, and removing it would delete the only record of what the fault looks like. The removal is from the app's edition registry, not from here.",
+        "the-shift": "Slots 17:32 through 17:81 each hold the translation of the NEXT canonical ayah: 17:32 holds canonical 17:33 ('do not kill the soul which Allah has forbidden'), and so on for 50 slots. Canonical 17:32 ('do not approach unlawful sexual intercourse') is absent entirely. The offset is absorbed at the end of the range by a DUPLICATE: 17:81 and 17:82 both carry canonical 17:82. Alignment is correct again from 17:83. Verified verse by verse against en-sahih."
+      },
       "error-literal": {
         "verses": [
           "30:18",
@@ -42,6 +54,13 @@
           "56:13"
         ],
         "why": "The value is the spreadsheet error literal '#NAZEV?' (Czech for '#NAME?') rather than a translation -- the export was produced from a sheet where three cells failed to evaluate, and the failure was written out verbatim. The text of these three ayahs is simply absent and cannot be recovered from this file. No alternative QUL resource for this edition exists. Accepted here so the new error-literal check fails on any NEW occurrence rather than on these three."
+      },
+      "shared-pipeline-hypothesis": {
+        "also-affects": [
+          "pl-bielawski"
+        ],
+        "range": "17:32-17:81",
+        "why": "RECORDED AT THE OWNER'S REQUEST, AND THE FIRST THING TO CHECK FOR ANY NEW CENTRAL EUROPEAN EDITION. cs-czech and pl-bielawski break at the IDENTICAL range, 17:32-17:81, in the identical way, and that is near-certainly one shared upstream tooling fault rather than two coincidences. Both files put canonical 17:33 in slot 17:32 and carry the one-slot shift for exactly 50 slots. They differ only in how the block terminates. pl-bielawski is a PURE LOSSLESS ROTATION: the displaced canonical 17:32 reappears in slot 17:81, so nothing is lost and rotating the block back would fully repair it. cs-czech is the same rotation gone lossy: instead of 17:32 landing in the last slot, that slot was filled with a copy of 17:82 and the verse was lost. This sits alongside the other evidence that pl-bielawski came through a Central European pipeline: its mojibake was UTF-8 read back through ISO-8859-2, which is what such an export does -- see the MOJIBAKE comment in qwtrans.py. A rotation by one over a fixed 50-row window is what a spreadsheet does when a row is deleted without the range being adjusted. REPAIRING pl-bielawski's rotation NEEDS ITS OWN AUTHORISATION and is not covered by any decision so far."
       }
     }
   },

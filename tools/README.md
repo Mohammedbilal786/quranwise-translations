@@ -34,8 +34,9 @@ Seven blocking findings already existed in the data when these checks were
 written, across `ku-amin`, `ko-choi`, `pl-bielawski`, `ha-gumi` and `pt-elhayek`.
 Three have since been repaired rather than accepted — `ku-amin`'s three stray
 `U+009D` bytes, `ko-choi` 49:10 (both [#75]) and `pl-bielawski`'s twelve
-double-encoded verses — so `check` reports **three** today. That number is meant to fall: it is the size of the backlog, not a
-constant.
+double-encoded verses — and the new `error-literal` check added one, in
+`cs-czech`, so `check` reports **four** today. That number is meant to fall: it
+is the size of the backlog, not a constant.
 
 They are recorded verse by verse in `known-issues.json` so that CI fails on new
 breakage rather than on the backlog it was added to expose.
@@ -45,6 +46,13 @@ a shipped file and carries a `why`; delete entries as the files are fixed, and
 run `check --strict` to see the whole picture at any time. Because verses are
 listed explicitly, the same defect appearing in a *new* ayah still fails the
 build — a stub added to `ha-gumi` 2:100 fails even though 27:55 is baselined.
+
+Two entries there are not waiting to be fixed, and say so. `cs-czech` records an
+edition the owner **dropped from the app**, with the reasons and verse
+references, so nobody re-adds it without reading them; its data file is kept
+here on purpose, because it is the evidence for the shared-pipeline hypothesis
+recorded alongside it. `ha-gumi` 27:55 was re-framed once it turned out not to be
+the isolated stub it was first recorded as.
 
 Standard library only. `tools/scriptdata.py` is generated — see
 [Regenerating the script tables](#regenerating-the-script-tables).
