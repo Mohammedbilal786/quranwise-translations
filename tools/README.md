@@ -147,11 +147,94 @@ normalisation pass.
 | `non-prose-stub` | blocker | Value contains none of the edition's own scripts — `ha-gumi` 27:55 is the string `"49."` |
 | `control-character` | blocker | A stray C1 byte, where the evidence does not support stripping it. Usually a decoding failure, and deleting it would hide a file that needs re-exporting — but see [When a control byte can be stripped](#when-a-control-byte-can-be-stripped) |
 | `double-encoded-utf8` | blocker | UTF-8 bytes re-read as cp1252. `pl-bielawski` had 12 such verses; all are repaired, so no edition trips this today |
+| `error-literal` | blocker | The whole verse is a spreadsheet error sentinel — `cs-czech` 30:18, 56:2 and 56:13 are all the string `"#NÁZEV?"` |
+| `length-outlier` | review | Far above the cross-edition median length — see [The corpus-level heuristics](#the-corpus-level-heuristics) |
+| `adjacent-duplicate` | review | Identical to the ayah before it, where the Arabic does not explain it — same section |
+| `verse-offset` | review | A run of verses whose lengths fit a neighbouring slot better. **Never a blocker** — same section |
 | `foreign-script` | review | A character from a script the edition doesn't use, almost always a homoglyph typo |
 | `mark-script-mismatch` | review | A combining mark on a base script it is never used with — an Arabic fatha inside a Dutch word |
 | `private-use` | review | Renders only in one specific font; tofu everywhere else |
 | `mark-order` | review | Marks stored in an order canonical ordering would change. `normalise` leaves these alone on purpose — see [NFC, but never reordering a mark](#nfc-but-never-reordering-a-mark) |
 | `pending-normalisation` | info | Mechanical residue a hand-edit reintroduced. Run `normalise` |
+
+## The corpus-level heuristics
+
+Four checks were added after the per-character ones, to catch damage that is
+invisible one character at a time: a verse that is not a translation at all, and
+a verse that sits in the wrong slot.
+
+### `error-literal` — a blocker, and free
+
+A cell that fails to evaluate is written out by the spreadsheet as its error
+literal, and if the export is taken from that sheet the literal lands in the
+data as the verse. `ERROR_LITERAL` matches the **whole trimmed value** against
+the sentinels of Excel and Sheets in the localisations a QUL contributor might
+plausibly have exported from — English, Czech, German, French, Dutch, Swedish,
+Danish/Norwegian, Finnish and Russian.
+
+Anchoring is what makes it costless. A translation that happens to discuss a
+number still has prose around it, so it cannot match. Measured across all 47
+editions: **3 hits, all genuine, no false positives** — and only three verses in
+the entire repo contain a `#` at all.
+
+### The three heuristics, and why none of them is a blocker
+
+`length-outlier`, `adjacent-duplicate` and `verse-offset` are correlations over
+text length and repetition. They can point a person at a defect; they cannot
+prove one. All three are severity `review`, and `verse-offset` in particular
+**must never be promoted to a blocker** — a shift it points at still has to be
+read against the Arabic by a person before anything changes.
+
+Each is gated, because ungated they are worse than useless:
+
+| Check | Raw | After the gates | What the gates are |
+|---|---|---|---|
+| `length-outlier` | 198 | 110 | Per-edition opt-out for six legitimately expansive editions, which accounted for 88 flags |
+| `adjacent-duplicate` | 960 | 31 | Per-edition opt-out for grouped-block editions (920 flags, 96%), then an Arabic-similarity gate (9 more) |
+| `verse-offset` | 8 editions | 5 editions | Per-edition opt-out for three confirmed-aligned editions |
+
+`adjacent-duplicate` is the clearest case. `tr-diyanet` translates runs of ayahs
+as one block and stores that identical block in **every slot of the group**;
+`dv-maldives` does the same. Between them that is 920 of the 960 raw pairs, all
+by design. The second gate handles the opposite problem: some consecutive ayahs
+genuinely are near-identical in the Arabic — 94:5-6, 102:3-4, 82:17-18, 78:4-5,
+75:34-35 — so a faithful translation of them is legitimately identical.
+Similarity is measured on the diacritic-stripped Arabic from
+`quran-script/qpc-hafs.json`, and the split is wide open: nine pairs score
+0.9167 or above, and **the next value down is 0.4381**. The 0.85 gate sits well
+inside that gap.
+
+`verse-offset` is tuned for recall, deliberately. A minimum-profile guard would
+take the false positives from three editions to none, but it also loses
+`cs-czech` and `ha-gumi`, both confirmed genuine. Missing a real misalignment is
+the expensive failure; a false one costs someone five minutes and a line in the
+opt-out list.
+
+### No repair mechanism may ever be a rule
+
+Everything these three checks find is **reported and left alone**. If a shift is
+ever repaired, it is repaired as a per-verse literal table — like
+`MOJIBAKE_REPAIRS` — and never as a rule.
+
+The counter-example is concrete. An unguarded "if a verse equals its
+predecessor, shift the block back" rule looks reasonable and would rewrite
+**843 verses in `tr-diyanet` and 77 in `dv-maldives`**, every one of them
+correct before the rule ran. That is the `ko-choi` 49:10 failure at nine hundred
+times the scale.
+
+### Keeping the output readable
+
+The three heuristics describe an edition's house style as much as its defects,
+so reprinting the same hundred-odd verses every run would teach everyone to skip
+the output. `check` prints only the verses **not** already listed under
+`heuristics` in `known-issues.json`, and drops a finding entirely when there are
+none — a run stays quiet until an edition's flags *change*. Verses are listed
+rather than counted on purpose: a count cannot tell one outlier being replaced
+by another from nothing happening, and that swap is the shape of a bad
+re-export.
+
+That section is separate from `accepted`, which is only ever about blocking
+findings. Nothing under `heuristics` can fail a build.
 
 ## The one thing that must never be stripped
 

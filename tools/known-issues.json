@@ -33,6 +33,302 @@
         ],
         "why": "The value is '.' rather than a translation. Needs checking against the QUL source."
       }
+    },
+    "cs-czech": {
+      "error-literal": {
+        "verses": [
+          "30:18",
+          "56:2",
+          "56:13"
+        ],
+        "why": "The value is the spreadsheet error literal '#NAZEV?' (Czech for '#NAME?') rather than a translation -- the export was produced from a sheet where three cells failed to evaluate, and the failure was written out verbatim. The text of these three ayahs is simply absent and cannot be recovered from this file. No alternative QUL resource for this edition exists. Accepted here so the new error-literal check fails on any NEW occurrence rather than on these three."
+      }
+    }
+  },
+  "_heuristics_comment": [
+    "The corpus-level heuristics -- length-outlier, adjacent-duplicate and",
+    "verse-offset -- are correlations over text length and repetition. They",
+    "cannot prove a defect, only point a person at one, so they are all",
+    "severity `review` and none of them ever fails a build.",
+    "",
+    "This section is what keeps them readable: `check` prints only the verses",
+    "a heuristic flags that are NOT listed here, so a run stays quiet until an",
+    "edition's flags CHANGE. Verses are listed rather than counted because a",
+    "count cannot tell one outlier being replaced by another from nothing",
+    "happening at all, and that swap is the shape of a bad re-export.",
+    "",
+    "Every entry was read before it was added. Adding one means 'a person",
+    "looked at this and it is not damage', or 'it is damage, and it is tracked",
+    "elsewhere' -- never 'make the warning go away'."
+  ],
+  "heuristics": {
+    "bg-theophanov": {
+      "adjacent-duplicate": {
+        "verses": [
+          "75:31"
+        ],
+        "why": "Identical to the preceding ayah with no Arabic similarity to explain it. Surviving both gates, so worth a human read -- but repeating a neighbour is not by itself proof of a defect, and nothing here may be repaired by rule. See HEURISTIC_OPT_OUT in qwtrans.py."
+      }
+    },
+    "cs-czech": {
+      "adjacent-duplicate": {
+        "verses": [
+          "17:82"
+        ],
+        "why": "17:82 repeats 17:81. This is the tail of the 17:32-17:81 shift -- the duplicate is what absorbs the offset left by the loss of canonical 17:32. See the cs-czech entry under `accepted`."
+      },
+      "verse-offset": {
+        "verses": [
+          "17:62"
+        ],
+        "why": "17:62..17:68 by +1, the same shift. See the cs-czech entry under `accepted`; the edition is being dropped."
+      }
+    },
+    "fi-finnish": {
+      "verse-offset": {
+        "verses": [
+          "3:3",
+          "3:34",
+          "3:45",
+          "3:59",
+          "3:70",
+          "3:85",
+          "3:149",
+          "3:162",
+          "3:181"
+        ],
+        "why": "Nine runs, 73 verses, almost all in surah 3 (3:45-3:190 by +1). The largest suspected misalignment in the corpus after cs-czech. Unread against the Arabic so far -- a heuristic result, not a finding."
+      }
+    },
+    "ha-gumi": {
+      "verse-offset": {
+        "verses": [
+          "27:48"
+        ],
+        "why": "27:48..27:53 by +1. Corroborates the 27:49-27:54 misalignment recorded in the ha-gumi entry under `accepted`, of which the '49.' at 27:55 is the orphaned tail."
+      }
+    },
+    "it-piccardo": {
+      "length-outlier": {
+        "verses": [
+          "2:286",
+          "3:200",
+          "4:176",
+          "5:120",
+          "6:165",
+          "7:206",
+          "8:75",
+          "9:129",
+          "10:109",
+          "11:123",
+          "12:111",
+          "13:43",
+          "14:52",
+          "15:99",
+          "16:128",
+          "17:111",
+          "18:110",
+          "19:98",
+          "20:135",
+          "21:68",
+          "21:112",
+          "22:78",
+          "23:118",
+          "24:64",
+          "25:77",
+          "26:227",
+          "27:93",
+          "28:88",
+          "29:69",
+          "30:60",
+          "31:34",
+          "32:30",
+          "33:73",
+          "34:54",
+          "35:45",
+          "36:83",
+          "37:182",
+          "38:88",
+          "39:75",
+          "40:85",
+          "41:54",
+          "42:53",
+          "43:89",
+          "44:59",
+          "45:37",
+          "46:35",
+          "47:38",
+          "48:29",
+          "49:18",
+          "50:45",
+          "51:60",
+          "52:49",
+          "53:62",
+          "54:55",
+          "55:78",
+          "56:96",
+          "57:29",
+          "58:22",
+          "59:24",
+          "60:13",
+          "61:14",
+          "62:11",
+          "63:11",
+          "64:18",
+          "66:12",
+          "68:52",
+          "69:52",
+          "70:44",
+          "71:28",
+          "72:28",
+          "74:56",
+          "75:40",
+          "76:31",
+          "77:50",
+          "79:46",
+          "80:42",
+          "81:29",
+          "82:19",
+          "83:36",
+          "84:25",
+          "85:22",
+          "86:17",
+          "87:19",
+          "88:26",
+          "89:30",
+          "90:20",
+          "91:15",
+          "92:21",
+          "93:11",
+          "94:8",
+          "95:8",
+          "96:19",
+          "97:5",
+          "98:8",
+          "99:8",
+          "101:11",
+          "102:8",
+          "104:9",
+          "105:5",
+          "106:4",
+          "107:7",
+          "108:3",
+          "109:6",
+          "110:3",
+          "111:5",
+          "112:4"
+        ],
+        "why": "Not a mis-export: Piccardo's edition carries a whole commentary block on the final ayah of each surah, and shorter exegetical notes inline elsewhere, so 106 verses run past 3x the cross-edition median. 2:286 is 72,028 characters against a median of 213. Worth a decision about splitting the commentary out of the verse text -- it is a real reading-experience problem -- but it is the source's own structure, not damage, and nothing here should be rewritten by a tool."
+      }
+    },
+    "ja-sato": {
+      "adjacent-duplicate": {
+        "verses": [
+          "37:74"
+        ],
+        "why": "Identical to the preceding ayah with no Arabic similarity to explain it. Surviving both gates, so worth a human read -- but repeating a neighbour is not by itself proof of a defect, and nothing here may be repaired by rule. See HEURISTIC_OPT_OUT in qwtrans.py."
+      }
+    },
+    "ko-choi": {
+      "adjacent-duplicate": {
+        "verses": [
+          "7:79",
+          "40:46"
+        ],
+        "why": "Identical to the preceding ayah with no Arabic similarity to explain it. Surviving both gates, so worth a human read -- but repeating a neighbour is not by itself proof of a defect, and nothing here may be repaired by rule. See HEURISTIC_OPT_OUT in qwtrans.py."
+      }
+    },
+    "ku-amin": {
+      "adjacent-duplicate": {
+        "verses": [
+          "2:216",
+          "26:68",
+          "26:104",
+          "26:191",
+          "56:65"
+        ],
+        "why": "Identical to the preceding ayah with no Arabic similarity to explain it. Surviving both gates, so worth a human read -- but repeating a neighbour is not by itself proof of a defect, and nothing here may be repaired by rule. See HEURISTIC_OPT_OUT in qwtrans.py."
+      }
+    },
+    "ms-basamia": {
+      "length-outlier": {
+        "verses": [
+          "6:122",
+          "32:13",
+          "42:24",
+          "43:32"
+        ],
+        "why": "Basmeih's style puts long bracketed glosses inside the verse text; the four flagged verses (572-846 chars) are ordinary prose for this edition, read and confirmed. Kept listed rather than opting the whole edition out, so a genuinely damaged verse here would still surface."
+      }
+    },
+    "pl-bielawski": {
+      "adjacent-duplicate": {
+        "verses": [
+          "54:32",
+          "73:18",
+          "74:14",
+          "80:20"
+        ],
+        "why": "Identical to the preceding ayah with no Arabic similarity to explain it. Surviving both gates, so worth a human read -- but repeating a neighbour is not by itself proof of a defect, and nothing here may be repaired by rule. See HEURISTIC_OPT_OUT in qwtrans.py."
+      },
+      "verse-offset": {
+        "verses": [
+          "17:60"
+        ],
+        "why": "17:60..17:66 by +1 -- the IDENTICAL range as cs-czech, and the strongest evidence for the shared-upstream-pipeline hypothesis recorded in the cs-czech entry under `accepted`. Unlike cs-czech this one is a lossless rotation: no verse is missing, so it is recoverable by rotating the block back. Needs its own authorisation first."
+      }
+    },
+    "ro-grigore": {
+      "adjacent-duplicate": {
+        "verses": [
+          "14:11",
+          "55:10"
+        ],
+        "why": "Identical to the preceding ayah with no Arabic similarity to explain it. Surviving both gates, so worth a human read -- but repeating a neighbour is not by itself proof of a defect, and nothing here may be repaired by rule. See HEURISTIC_OPT_OUT in qwtrans.py."
+      },
+      "verse-offset": {
+        "verses": [
+          "54:28",
+          "54:45"
+        ],
+        "why": "54:28..54:40 and 54:45..54:53, both by +1. Grigore's surah 54 is very short-lined, which weakens the signal; needs reading against the Arabic before it is treated as real."
+      }
+    },
+    "sw-barwani": {
+      "adjacent-duplicate": {
+        "verses": [
+          "17:84",
+          "21:91",
+          "26:99",
+          "26:123",
+          "37:71",
+          "37:119",
+          "43:56"
+        ],
+        "why": "Identical to the preceding ayah with no Arabic similarity to explain it. Surviving both gates, so worth a human read -- but repeating a neighbour is not by itself proof of a defect, and nothing here may be repaired by rule. See HEURISTIC_OPT_OUT in qwtrans.py."
+      }
+    },
+    "uz-sodik": {
+      "adjacent-duplicate": {
+        "verses": [
+          "37:138"
+        ],
+        "why": "Identical to the preceding ayah with no Arabic similarity to explain it. Surviving both gates, so worth a human read -- but repeating a neighbour is not by itself proof of a defect, and nothing here may be repaired by rule. See HEURISTIC_OPT_OUT in qwtrans.py."
+      }
+    },
+    "zh-majian": {
+      "adjacent-duplicate": {
+        "verses": [
+          "4:110",
+          "7:110",
+          "11:110",
+          "26:217",
+          "26:218",
+          "26:219",
+          "85:10"
+        ],
+        "why": "Identical to the preceding ayah with no Arabic similarity to explain it. Surviving both gates, so worth a human read -- but repeating a neighbour is not by itself proof of a defect, and nothing here may be repaired by rule. See HEURISTIC_OPT_OUT in qwtrans.py."
+      }
     }
   }
 }

@@ -417,6 +417,279 @@ def normalise_edition(data: dict, name: str | None = None) -> tuple[dict, int]:
 
 
 # --------------------------------------------------------------------------
+# Corpus-level heuristics
+# --------------------------------------------------------------------------
+
+# Spreadsheet error sentinels, in the localisations a QUL contributor's export
+# could plausibly have been produced in. A cell that failed to evaluate is
+# written out as its error literal, and a whole verse consisting of nothing but
+# one of these is an export failure, not a translation.
+#
+# MATCHED ANCHORED, against the whole trimmed value -- never as a substring.
+# That is what makes the check free of false positives: a translation that
+# happens to discuss a number or a reference still contains prose around it.
+# Measured across the corpus, exactly three verses match, and only three verses
+# in the entire repo contain a "#" at all.
+_ERROR_LITERALS = (
+    # Excel / Google Sheets, en-US
+    "#NAME?", "#VALUE!", "#REF!", "#DIV/0!", "#N/A", "#NUM!", "#NULL!",
+    "#ERROR!", "#SPILL!", "#CALC!", "#GETTING_DATA",
+    # Czech -- the form actually found, in cs-czech
+    "#NÁZEV?", "#HODNOTA!", "#ODKAZ!", "#DĚLENÍ_NULOU!", "#ČÍSLO!",
+    "#NENÍ_K_DISPOZICI", "#NEPLATNÝ!",
+    # German
+    "#WERT!", "#BEZUG!", "#NV", "#ZAHL!", "#LEER!",
+    # French
+    "#NOM?", "#VALEUR!", "#NOMBRE!", "#NUL!",
+    # Dutch
+    "#NAAM?", "#WAARDE!", "#VERW!", "#DEEL/0!", "#N/B", "#GETAL!",
+    # Swedish
+    "#NAMN?", "#VÄRDEFEL!", "#REFERENS!", "#DIVISION/0!", "#SAKNAS!",
+    "#OGILTIGT!", "#SKÄRNING!",
+    # Danish / Norwegian
+    "#NAVN?", "#VÆRDI!", "#REFERENCE!", "#I/T", "#TOM!",
+    # Finnish
+    "#NIMI?", "#ARVO!", "#VIITTAUS!", "#JAKO/0!", "#PUUTTUU", "#LUKU!", "#TYHJÄ!",
+    # Russian
+    "#ИМЯ?", "#ЗНАЧ!", "#ССЫЛКА!", "#ДЕЛ/0!", "#Н/Д", "#ЧИСЛО!", "#ПУСТО!",
+)
+
+ERROR_LITERAL = re.compile(
+    r"\A[\s.]*(?:%s)[\s.]*\Z"
+    % "|".join(re.escape(s) for s in dict.fromkeys(_ERROR_LITERALS)),
+    re.IGNORECASE,
+)
+
+# Editions exempted from one of the heuristic checks below, keyed check ->
+# editions. Same shape and the same bar as UNMODIFIABLE: an opt-OUT for a whole
+# edition, added only after reading the verses it covers.
+#
+# These four checks are heuristics over text length and repetition. They cannot
+# prove a defect, only point a human at one, so each is severity `review` and
+# each carries an escape hatch for editions whose house style trips it by
+# design. `verse-offset` in particular must NEVER be promoted to a blocker.
+HEURISTIC_OPT_OUT: dict[str, frozenset[str]] = {
+    # Editions whose glossing style legitimately runs several times the
+    # cross-edition median: bracketed exegetical expansion inside the verse
+    # text. Measured, these six account for 88 of the 198 raw flags, and every
+    # one sampled was ordinary expansive translation rather than damage.
+    "length-outlier": frozenset({
+        "tr-diyanet", "tt-tatar", "ku-amin", "dv-maldives", "fi-finnish",
+        "fa-taji",
+    }),
+    # GROUPED-BLOCK EDITIONS. These translate a run of ayahs as one block and
+    # then store that identical block in every slot of the group, so adjacent
+    # duplicates are the format, not a defect. Without this gate the check is
+    # useless: tr-diyanet alone contributes 843 of 960 raw pairs and
+    # dv-maldives another 77 -- 96% of the total, all by design.
+    "adjacent-duplicate": frozenset({"tr-diyanet", "dv-maldives"}),
+    # Confirmed correctly aligned by reading each flagged run against en-sahih
+    # verse by verse. All three are short-verse passages where the cross-edition
+    # profile is too small to carry a reliable signal, and the run happens to
+    # correlate better with its neighbour by chance.
+    "verse-offset": frozenset({"bn-zakaria", "sv-bernstrom", "vi-abdulkarim"}),
+}
+
+# length-outlier fires when a verse is BOTH more than this many times the
+# cross-edition median AND this many characters above it. Two conditions rather
+# than one because either alone is noise: short verses trip a ratio easily, and
+# long ones trip an absolute delta easily.
+OUTLIER_RATIO = 3.0
+OUTLIER_DELTA = 400
+
+# adjacent-duplicate's second gate. Some consecutive ayahs ARE near-identical in
+# the Arabic -- 94:5-6, 102:3-4, 82:17-18, 78:4-5, 75:34-35 -- and a faithful
+# translation of them is legitimately identical. Similarity is measured on the
+# diacritic-stripped Arabic from quran-script/qpc-hafs.json. Measured over the
+# 40 pairs surviving the opt-out, the split is wide open: nine pairs score
+# 0.9167 and above, and the next value down is 0.4381. Anything in that gap
+# would do; 0.85 sits well inside it.
+ARABIC_SIMILARITY_GATE = 0.85
+
+# verse-offset. A verse votes for an offset only when the neighbouring slot's
+# expected length beats its own by this margin, and only a run of this many
+# consecutive agreeing votes is reported. Deliberately tuned for RECALL: a
+# minimum-profile guard would cut the false positives from three editions to
+# none, but it also loses cs-czech and ha-gumi, both confirmed genuine. Missing
+# a real misalignment is the expensive failure here; a false one costs a human
+# five minutes and an opt-out line.
+OFFSET_RUN = 6
+OFFSET_MARGIN = 1.30
+
+
+def _verse_text(value) -> str:
+    text = value.get("t") if isinstance(value, dict) else value
+    return text if isinstance(text, str) else ""
+
+
+@lru_cache(maxsize=1)
+def length_profile() -> dict[str, float]:
+    """Median verse length across every edition on disk, per ayah key.
+
+    The profile is a property of the CORPUS, not of whichever editions the
+    caller selected, so it is always built from all of them -- checking one
+    edition against a profile derived from itself would measure nothing.
+    """
+    import statistics
+
+    lengths: dict[str, list[int]] = {}
+    for path in editions():
+        try:
+            data = load(path)
+        except (OSError, json.JSONDecodeError):
+            continue
+        for key, value in data.items():
+            text = _verse_text(value)
+            if text.strip():
+                lengths.setdefault(key, []).append(len(text))
+    return {k: statistics.median(v) for k, v in lengths.items() if v}
+
+
+@lru_cache(maxsize=1)
+def arabic_skeletons() -> dict[str, str]:
+    """Diacritic-stripped Arabic per ayah, or {} if the script file is absent.
+
+    Letters only: combining marks, the end-of-ayah number and its NO-BREAK
+    SPACE, tatweel and punctuation all go, leaving the consonantal skeleton --
+    the part two near-identical ayahs actually share.
+    """
+    path = REPO / "quran-script" / "qpc-hafs.json"
+    if not path.exists():
+        return {}
+    with path.open(encoding="utf-8") as fh:
+        raw = json.load(fh)
+    out = {}
+    for key, value in raw.items():
+        text = value.get("text", "") if isinstance(value, dict) else str(value)
+        decomposed = unicodedata.normalize("NFD", text)
+        out[key] = "".join(
+            ch for ch in decomposed if unicodedata.category(ch).startswith("L")
+        )
+    return out
+
+
+def arabic_similarity(first: str, second: str) -> float:
+    """How alike two ayahs are in the bare Arabic. 0.0 when either is unknown."""
+    import difflib
+
+    skeletons = arabic_skeletons()
+    a, b = skeletons.get(first, ""), skeletons.get(second, "")
+    if not a or not b:
+        return 0.0
+    return difflib.SequenceMatcher(None, a, b).ratio()
+
+
+# Canonical keys grouped by surah, so the heuristics never compare the last
+# ayah of one surah with the first of the next.
+SURAH_KEYS: list[list[str]] = [
+    [f"{surah}:{ayah}" for ayah in range(1, count + 1)]
+    for surah, count in enumerate(AYAH_COUNTS, start=1)
+]
+
+
+def _length_outliers(name: str, data: dict, profile: dict[str, float]) -> list[str]:
+    if name in HEURISTIC_OPT_OUT["length-outlier"]:
+        return []
+    flagged = []
+    for key, value in data.items():
+        expected = profile.get(key, 0.0)
+        if not expected:
+            continue
+        length = len(_verse_text(value))
+        if length > OUTLIER_RATIO * expected and length - expected > OUTLIER_DELTA:
+            flagged.append(key)
+    return flagged
+
+
+def _adjacent_duplicates(name: str, data: dict) -> list[str]:
+    """Consecutive ayahs within a surah whose translations are byte-identical.
+
+    Both gates are mandatory -- see HEURISTIC_OPT_OUT and
+    ARABIC_SIMILARITY_GATE. Ungated this check is 97% false.
+
+    Reports the pair as the SECOND key of each pair, which is the one a repair
+    would have to touch.
+    """
+    if name in HEURISTIC_OPT_OUT["adjacent-duplicate"]:
+        return []
+    flagged = []
+    for keys in SURAH_KEYS:
+        for first, second in zip(keys, keys[1:]):
+            if first not in data or second not in data:
+                continue
+            text = _verse_text(data[first]).strip()
+            if not text or text != _verse_text(data[second]).strip():
+                continue
+            if arabic_similarity(first, second) >= ARABIC_SIMILARITY_GATE:
+                continue
+            flagged.append(second)
+    return flagged
+
+
+def _offset_runs(name: str, data: dict, profile: dict[str, float]):
+    """Runs of verses whose length fits a NEIGHBOURING slot better than their own.
+
+    A length-profile correlation with a windowed +/-1 vote: for each ayah, the
+    expected length of its own slot and of the two beside it are compared
+    against what this edition actually stores, scaled by how verbose the edition
+    is overall. A run of consecutive ayahs all voting the same way is the
+    signature of a block that slipped by one.
+
+    HEURISTIC, AND ONLY EVER SEVERITY `review`. It is a correlation over
+    character counts. It cannot prove a misalignment and must never be promoted
+    to a blocker -- a shift it points at still has to be read by a person
+    against the Arabic before anything is changed.
+    """
+    if name in HEURISTIC_OPT_OUT["verse-offset"]:
+        return []
+
+    import statistics
+
+    ratios = [
+        len(_verse_text(data[k])) / profile[k]
+        for k in profile
+        if profile[k] and k in data and _verse_text(data[k]).strip()
+    ]
+    if not ratios:
+        return []
+    scale = statistics.median(ratios)
+
+    runs = []
+    for keys in SURAH_KEYS:
+        votes = []
+        for index, key in enumerate(keys):
+            length = len(_verse_text(data.get(key, "")))
+            if not length or not profile.get(key):
+                votes.append(0)
+                continue
+            error = {}
+            for offset in (-1, 0, 1):
+                neighbour = index + offset
+                if 0 <= neighbour < len(keys) and profile.get(keys[neighbour]):
+                    expected = scale * profile[keys[neighbour]]
+                    error[offset] = abs(length - expected) / max(expected, 1.0)
+            if 0 not in error:
+                votes.append(0)
+                continue
+            best = min(error, key=error.get)
+            fits_better = error[0] > OFFSET_MARGIN * error[best] + 0.02
+            votes.append(best if best != 0 and fits_better else 0)
+
+        start = 0
+        while start < len(votes):
+            if votes[start] == 0:
+                start += 1
+                continue
+            end = start
+            while end < len(votes) and votes[end] == votes[start]:
+                end += 1
+            if end - start >= OFFSET_RUN:
+                runs.append((keys[start], keys[end - 1], votes[start], end - start))
+            start = end
+    return runs
+
+
+# --------------------------------------------------------------------------
 # Checks
 # --------------------------------------------------------------------------
 
@@ -453,6 +726,13 @@ def check_edition(name: str, data: dict, allow_scripts: list[str]) -> list[Findi
         f"expected {TOTAL_AYAHS} canonical keys, found {len(keys)}")
     add("unknown-ayah", "blocker", keys - CANONICAL_SET,
         "key is not a valid surah:ayah reference")
+
+    # A whole verse that is nothing but a spreadsheet error sentinel is an
+    # export failure. Blocker: unlike the heuristics below there is no judgement
+    # in it -- the value is not a translation, and no re-reading will make it one.
+    add("error-literal", "blocker",
+        [k for k, v in data.items() if ERROR_LITERAL.match(_verse_text(v))],
+        "value is a spreadsheet error sentinel, not a translation")
 
     empty, stub, controls, mojibake, private, marks = [], [], [], [], [], []
     mark_detail: dict[str, int] = {}
@@ -562,6 +842,37 @@ def check_edition(name: str, data: dict, allow_scripts: list[str]) -> list[Findi
         add("foreign-script", "review", verses,
             f"{script} in {len(verses)} of {total} verses (e.g. {samples})")
 
+    # Corpus-level heuristics. All three are `review` and all three are gated --
+    # see HEURISTIC_OPT_OUT. `verse-offset` must never become a blocker.
+    profile = length_profile()
+
+    outliers = _length_outliers(name, data, profile)
+    if outliers:
+        worst = max(outliers, key=lambda k: len(_verse_text(data[k])))
+        # Names the edition's longest outlier for scale, which is not
+        # necessarily one of the verses printed below -- the rest may already
+        # be in the heuristics baseline.
+        add("length-outlier", "review", outliers,
+            f"over {OUTLIER_RATIO:g}x the cross-edition median and +{OUTLIER_DELTA}"
+            f" chars; this edition's longest such verse is {worst} at"
+            f" {len(_verse_text(data[worst]))} chars against a median of"
+            f" {profile.get(worst, 0):.0f}")
+
+    add("adjacent-duplicate", "review", _adjacent_duplicates(name, data),
+        "identical to the preceding ayah, which the Arabic does not explain"
+        f" (similarity below {ARABIC_SIMILARITY_GATE})")
+
+    runs = _offset_runs(name, data, profile)
+    if runs:
+        described = "; ".join(
+            f"{a}..{b} by {off:+d} ({length} verses)" for a, b, off, length in
+            sorted(runs, key=lambda r: -r[3])[:4]
+        )
+        add("verse-offset", "review", [a for a, _b, _o, _l in runs],
+            f"length profile fits a neighbouring slot better across {described}"
+            " -- a heuristic over character counts, never proof; read the range"
+            " against the Arabic before changing anything")
+
     return findings
 
 
@@ -604,6 +915,32 @@ def known_issues() -> dict:
         return {}
     with path.open(encoding="utf-8") as fh:
         return json.load(fh).get("accepted", {})
+
+
+# The three corpus-level heuristics, whose steady-state cost has to be near
+# zero or nobody will read the output. `check` reports only the verses these
+# flag that are NOT already in the heuristics baseline, and drops the finding
+# entirely when there are none -- so a run is quiet until an edition's outliers
+# CHANGE, which is the event worth a human's attention.
+#
+# Verse lists rather than bare counts, matching the rest of known-issues.json:
+# a count cannot tell "one outlier went away and another appeared" from "nothing
+# happened", and that swap is exactly the shape of a bad re-export.
+HEURISTIC_CHECKS = frozenset({"length-outlier", "adjacent-duplicate", "verse-offset"})
+
+
+def heuristic_baseline() -> dict:
+    """Accepted heuristic flags, keyed edition -> check -> {"verses": [...]}.
+
+    Kept in a separate top-level section from `accepted`, which is specifically
+    about BLOCKING findings. Nothing here ever fails a build; this section only
+    decides what gets printed.
+    """
+    path = Path(__file__).resolve().parent / "known-issues.json"
+    if not path.exists():
+        return {}
+    with path.open(encoding="utf-8") as fh:
+        return json.load(fh).get("heuristics", {})
 
 
 def allowlist() -> dict:

@@ -55,7 +55,8 @@ def _verse_summary(verses: list[str], limit: int = 12) -> str:
 def cmd_check(args) -> int:
     allow = Q.allowlist()
     baseline = {} if args.strict else Q.known_issues()
-    blockers = reviews = accepted = 0
+    heuristics = {} if args.strict else Q.heuristic_baseline()
+    blockers = reviews = accepted = settled = 0
     clean: list[str] = []
 
     for path in _selected(args.editions):
@@ -63,6 +64,26 @@ def cmd_check(args) -> int:
         data = Q.load(path)
         allowed = allow.get(name, {}).get("allow", [])
         findings = Q.check_edition(name, data, allowed)
+
+        # The corpus-level heuristics are reported only where they have MOVED.
+        # Each is a standing observation about an edition's house style as much
+        # as a defect report, so reprinting the same hundred-odd verses every
+        # run would teach everyone to skip the output. See Q.HEURISTIC_CHECKS.
+        kept = []
+        for f in findings:
+            if f.check not in Q.HEURISTIC_CHECKS:
+                kept.append(f)
+                continue
+            seen = set(heuristics.get(name, {}).get(f.check, {}).get("verses", []))
+            fresh = [v for v in f.verses if v not in seen]
+            if not fresh:
+                settled += 1
+                continue
+            if seen:
+                f.detail += f" -- plus {len(seen)} already in the heuristics baseline"
+            f.verses = fresh
+            kept.append(f)
+        findings = kept
 
         if not findings:
             clean.append(name)
@@ -93,6 +114,8 @@ def cmd_check(args) -> int:
     print()
     print(f"{len(clean)} clean, {blockers} new blocking finding(s), "
           f"{accepted} accepted in the baseline, {reviews} needing review")
+    if settled:
+        print(f"{settled} heuristic finding(s) unchanged from the baseline, not listed")
     if clean and args.verbose:
         print("clean: " + ", ".join(clean))
     if blockers:
