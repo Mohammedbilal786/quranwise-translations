@@ -116,7 +116,7 @@
           "3:162",
           "3:181"
         ],
-        "why": "Nine runs, 73 verses, almost all in surah 3 (3:45-3:190 by +1). The largest suspected misalignment in the corpus after cs-czech. Unread against the Arabic so far -- a heuristic result, not a finding."
+        "why": "READ AGAINST THE TEXT, AND REAL -- and not nine runs of 73 verses as first recorded. It is damage, tracked in quranwise#113; the verses listed here are only what the length-based scan flags, not the extent. Actual extent: ONE continuous run of 196 slots, 3:4-3:199, each holding the NEXT canonical ayah. Head is a MERGE: slot 3:3 (386 chars against neighbours of 64 and 103) carries canonical 3:3 AND 3:4 fused into one cell. Tail is a SPLIT: canonical 3:199 is divided across slots 3:198 and 3:199, which keeps the surah at 200. 3:1, 3:2 and 3:200 are correct. LOSSLESS -- no Finnish text is missing -- so re-alignment is possible and authorised, but it is BLOCKED ON A FINNISH READER to place the 3:3/3:4 seam: one Finnish clause spans the canonical boundary. Do not apply the mechanical shift without the seam decided. Other ranges this scan raised (53:1-53:5, 77:28-77:30) were read and are false positives. QUL has no other Finnish resource. Resource 127 has NOT yet been re-downloaded to confirm upstream carries the same merge. The only MERGE-shaped instance found; the cs-czech/pl-bielawski/ha-gumi/ro-grigore cases are all deletions -- see accepted.cs-czech.shared-pipeline-hypothesis."
       }
     },
     "ha-gumi": {
@@ -303,14 +303,14 @@
           "14:11",
           "55:10"
         ],
-        "why": "Identical to the preceding ayah with no Arabic similarity to explain it. Surviving both gates, so worth a human read -- but repeating a neighbour is not by itself proof of a defect, and nothing here may be repaired by rule. See HEURISTIC_OPT_OUT in qwtrans.py."
+        "why": "Both are real damage, tracked in quranwise#112, not benign repetition. 55:10 is the filler that terminates the 53:34-55:9 one-slot shift (see verse-offset). 14:11 is an independent defect: it duplicates 14:10 byte for byte, and canonical 14:11 is absent from the file. Nothing here may be repaired by rule. See HEURISTIC_OPT_OUT in qwtrans.py."
       },
       "verse-offset": {
         "verses": [
           "54:28",
           "54:45"
         ],
-        "why": "54:28..54:40 and 54:45..54:53, both by +1. Grigore's surah 54 is very short-lined, which weakens the signal; needs reading against the Arabic before it is treated as real."
+        "why": "READ AGAINST THE TEXT, AND REAL -- this flag badly UNDERSTATES it. It is damage, tracked in quranwise#112; the verses listed here are only what the length-based scan happens to flag, not the extent. Actual extent: ONE continuous run of 93 slots, 53:34-55:9, each holding the NEXT canonical ayah, crossing two surah boundaries (slot 53:62 holds canonical 54:1, the moon splitting; slot 54:55 holds canonical 55:1, 'The Most Merciful'). Head is LOSSY: canonical 53:34 is absent from the file entirely. Tail is absorbed by the byte-identical filler at 55:10 (see adjacent-duplicate). Not repairable by rule -- the missing verse would have to be invented. QUL lists two other Romanian resources (465, 293), so a swap is worth evaluating before a withdrawal. Resource 135 has NOT yet been re-downloaded to confirm upstream carries the same shift. Length-correlation cannot see this class of damage (it finds zero runs in cs-czech): treat any count here as a floor, never a measurement."
       }
     },
     "sw-barwani": {
