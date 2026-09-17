@@ -4,7 +4,7 @@ Quran translation text used by the [Quranwise](https://github.com/Mohammedbilal7
 
 ## Source
 
-All files are sourced from [QUL — Quranic Universal Library](https://qul.tarteel.ai/resources/translation) (Tarteel AI), `simple.json` export format.
+All files are sourced from [QUL — Quranic Universal Library](https://qul.tarteel.ai/resources/translation) (Tarteel AI), `simple.json` export format — **except two, which come from [QuranEnc.com](https://quranenc.com) under its re-publishing terms: `ka-rwwad` and `ro-islam4ro`.** See Licensing below before touching either.
 
 ## Format
 
@@ -65,7 +65,7 @@ Licensing varies per translation — see [QUL's translations page](https://qul.t
 
 ### `ka-rwwad` is not from QUL — read this before touching it
 
-Every other translation here came from QUL. The Georgian edition did not: QUL's
+Apart from `ro-islam4ro` (next section), every other translation here came from QUL. The Georgian edition did not: QUL's
 own Georgian resource stops at surah 6 (899 of 6,236 verses), an upstream gap
 that re-downloading does not fix. `translations/ka-rwwad.json` comes from
 **QuranEnc.com**, translation key `georgian_rwwad`, **version 1.0.7 (2026-07-28)**,
@@ -113,6 +113,61 @@ What that means in practice for this repo:
   the version above and `QURANENC_GEORGIAN_VERSION` in the app.
 - **Term 5**: report corrections via `POST https://quranenc.com/api/v1/translations/note`.
 
+### `ro-islam4ro` is not from QUL either — same terms, same rules
+
+`translations/ro-islam4ro.json` replaced `ro-grigore` **in the app** on 2026-09-17
+(quranwise#112). It comes from **QuranEnc.com**, translation key `romanian_project`,
+**version 1.0.4** (QuranEnc `last_update` 1746075668 = 2025-05-01), fetched
+2026-09-17 from `GET https://quranenc.com/api/v1/translation/sura/romanian_project/{n}`.
+Unlike `georgian_rwwad`, this key *is* listed in `/translations/list/ro`, which
+reports the version directly.
+
+Credit: *Romanian Translation — Islam4ro.com* ("Translation of the Noble Quran's
+meanings into Romanian; issued by islam4ro.com").
+
+**Why not QUL's Romanian resources.** QUL resource 135 (`ro-grigore`) carries a
+93-slot shift with two verses lost, identical in QUL's own export. QUL resource
+465 **is this same translation** (6,235/6,236 verses identical once footnote
+markers are ignored), but QUL's `simple.json` strips QuranEnc's footnotes from
+1,127 verses, which terms 1 and 4 below forbid, so it cannot be shipped from
+QUL. QUL resource 293 (Islamic and Cultural League) has no stated licence.
+
+**The seven QuranEnc terms apply to this file exactly as to `ka-rwwad`**, quoted
+verbatim from QuranEnc's terms:
+
+> Contents of the translations can be downloaded and re-published, with the following terms and conditions:
+> 1. No modification, addition, or deletion of the content.
+> 2. Clearly referring to the publisher and the source (QuranEnc.com).
+> 3. Mentioning the version number when re-publishing the translation.
+> 4. Keeping the transcript information inside the document.
+> 5. Notifying the source (QuranEnc.com) of any note on the translation.
+> 6. Updating the translation according to the latest version issued from the source (QuranEnc.com).
+> 7. Inappropriate advertisements must not be included when displaying translations of the meanings of the Noble Quran.
+
+How each is met:
+
+- **Terms 1 and 4 — stored exactly as fetched.** Each entry's `t` is the API's
+  `translation` string and `f` its `footnotes` string, unaltered, with `f`
+  present only where the API returns a non-empty footnote (1,127 verses). Every
+  `f` pairs with an inline `[n]` marker in its `t`, and no marker lacks one,
+  checked across all 6,236 verses. No normalisation was applied; unlike
+  `ka-rwwad`, this edition happens to contain no literal newlines, so it raises
+  no standing `pending-normalisation` finding. `qwtrans.UNMODIFIABLE` covers it,
+  so the tooling cannot rewrite it.
+- **Terms 2 and 3 — in the app.** Reading Preferences shows a source line naming
+  Islam4ro.com, QuranEnc.com and the version (`translationSourceNote`, with
+  `QURANENC_ROMANIAN_VERSION` in the app).
+- **Term 5** — report corrections via `POST https://quranenc.com/api/v1/translations/note`.
+- **Term 6 is an ongoing obligation.** Check `/translations/list/ro` for a newer
+  `version`; on any re-fetch, bump both the version above and
+  `QURANENC_ROMANIAN_VERSION` in the app.
+- **Term 7** — the app carries no advertising.
+
+**`ro-grigore.json` stays in this repo, deliberately**, like `cs-czech.json`: it
+is evidence for the shared-pipeline hypothesis recorded in `known-issues.json`,
+and it is no longer in the app's edition registry. Readers who had it selected
+are moved to `ro-islam4ro` by the app.
+
 ## Files
 
 | File | Language | Translator |
@@ -123,6 +178,7 @@ What that means in practice for this repo:
 | `translations/zh-majian.json` | Chinese (Simplified) | Ma Jian |
 | `translations/ur-jalandhry.json` | Urdu | Fatah Muhammad Jalandhari |
 | `translations/ka-rwwad.json` | Georgian | Rowwad Translation Center (via QuranEnc.com, **not** QUL) |
+| `translations/ro-islam4ro.json` | Romanian | Islam4ro.com (via QuranEnc.com, **not** QUL) |
 
 ## `topics/topics.json`
 
