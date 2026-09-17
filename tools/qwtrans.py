@@ -382,7 +382,11 @@ def normalise_text(text: str, *, strip_controls: bool = False) -> str:
 # repair for named verses. This is an opt-OUT of all of them for a whole
 # edition, and the justification bar is different: a written term forbidding
 # modification, not a hand review of the damage.
-UNMODIFIABLE = frozenset({"ka-rwwad"})
+#
+# ro-islam4ro (added 2026-09-17, replacing ro-grigore in the app -- see
+# quranwise#112) comes from QuranEnc.com under the same seven terms, so it is
+# held to the same rule: stored exactly as the API returns it, footnotes and all.
+UNMODIFIABLE = frozenset({"ka-rwwad", "ro-islam4ro"})
 
 
 def normalise_edition(data: dict, name: str | None = None) -> tuple[dict, int]:
