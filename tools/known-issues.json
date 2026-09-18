@@ -68,6 +68,15 @@
         "decision": "REPLACED IN THE APP by the owner on 2026-09-17 with ro-islam4ro (QuranEnc.com romanian_project). Do not re-add this edition to the app without reading quranwise#112.",
         "why": "A 93-slot one-ayah shift across 53:34-55:9 with canonical 53:34 and 14:11 absent, confirmed identical in QUL's own resource 135 export, so neither re-export nor repair-by-rule can fix it. The data file is deliberately KEPT here, like cs-czech's: it is evidence for the shared-pipeline hypothesis (see accepted.cs-czech.shared-pipeline-hypothesis) and its heuristics entries stay in force. The replacement is from the app's edition registry, not from this repo."
       }
+    },
+    "fi-finnish": {
+      "missing-ayah": {
+        "verses": [
+          "3:3",
+          "3:4"
+        ],
+        "why": "DELIBERATELY BLANKED by the owner on 2026-09-18, not missing upstream. QUL resource 127 merges canonical 3:3 and 3:4 into a single cell, and the rest of surah 3 was shifted one slot as a result. The shift has been re-aligned (3:5-3:198 moved back, 3:199 rejoined from its two halves); these two slots are the part that cannot be repaired mechanically, because splitting the merged Finnish sentence at the canonical 3:3/3:4 boundary is an editorial judgement a Finnish speaker must make -- the translator's clause order straddles the boundary. Blank is the honest state: the app renders 'Translation not available for this ayah' here, exactly as it does for ku-amin 108:3, rather than showing one verse's text under two numbers. The merged text is preserved in git history and quoted in quranwise#113, which carries the recommended split for whenever a Finnish reader can confirm it."
+      }
     }
   },
   "_heuristics_comment": [
@@ -107,24 +116,6 @@
           "17:62"
         ],
         "why": "17:62..17:68 by +1, the same shift. See the cs-czech entry under `accepted`; the edition is being dropped."
-      }
-    },
-    "fi-finnish": {
-      "verse-offset": {
-        "verses": [
-          "3:3",
-          "3:34",
-          "3:45",
-          "3:59",
-          "3:70",
-          "3:76",
-          "3:85",
-          "3:130",
-          "3:149",
-          "3:162",
-          "3:181"
-        ],
-        "why": "READ AGAINST THE TEXT, AND REAL -- and not nine runs of 73 verses as first recorded. It is damage, tracked in quranwise#113; the verses listed here are only what the length-based scan flags, not the extent. Actual extent: ONE continuous run of 196 slots, 3:4-3:199, each holding the NEXT canonical ayah. Head is a MERGE: slot 3:3 (386 chars against neighbours of 64 and 103) carries canonical 3:3 AND 3:4 fused into one cell. Tail is a SPLIT: canonical 3:199 is divided across slots 3:198 and 3:199, which keeps the surah at 200. 3:1, 3:2 and 3:200 are correct. LOSSLESS -- no Finnish text is missing -- so re-alignment is possible and authorised, but it is BLOCKED ON A FINNISH READER to place the 3:3/3:4 seam: one Finnish clause spans the canonical boundary. Do not apply the mechanical shift without the seam decided. Other ranges this scan raised (53:1-53:5, 77:28-77:30) were read and are false positives. UPSTREAM CONFIRMED (2026-09-17): a fresh QUL download of resource 127 is identical to this file in all 6,236 verses after import normalisation (only a BOM on 1:1 differs), and QUL's export is dated 2025-05-27, before our import -- re-exporting cannot fix it. Nothing to swap to: QUL has no other Finnish resource and QuranEnc has no Finnish translation. The only routes are the lossless re-align or withdrawal. The only MERGE-shaped instance found; the cs-czech/pl-bielawski/ha-gumi/ro-grigore cases are all deletions -- see accepted.cs-czech.shared-pipeline-hypothesis. Flag set grew when ro-islam4ro joined the corpus (2026-09-17): the cross-edition length median moved, so the scan now also lands on 3:76 and 3:130 -- both inside the known 3:4-3:199 shift, not new damage."
       }
     },
     "ha-gumi": {
