@@ -59,6 +59,33 @@ python3 tools/qwt.py versions
 
 CI runs `versions --check` and fails the build if it is out of date.
 
+## Release checklist: a change to the Mushaf layout or the Indo-Pak text
+
+This applies to `mushaf-layout/indopak-16-lines-taj.json` and
+`quran-script/digital-khatt-indopak.json`. **Every change to either is paired with an app
+release within days** (owner rule, 2026-10-16).
+
+The app ships a widths table (`src/generated/mushafLineWidths.json` in the app repo) that
+is measured against one exact version of each file. From quranwise#182 on, the app also
+ships those exact files.
+
+**A confirmed correction here wins over the copy inside the app.** The reader gets the
+corrected text. But it is a version the table was not measured against, so every Mushaf
+page sizes itself in the #169 fallback until an app update ships a regenerated table:
+- no per-device type size;
+- no magnifier.
+
+The app reports this to Sentry with the data version, so it is visible when it happens.
+
+1. Make the change here. Regenerate `versions.json` in the same commit (above). CI passes.
+2. In the app repo, set the widths generator's `DATA_COMMIT` to this commit and run
+   `npm run generate:mushaf-widths`.
+3. Re-bundle the two files at that commit (the bundle script, from #182). The app's test
+   fails if a bundled file's sha256 differs from the table's.
+4. Release the app within days. Until readers update, they are in the fallback.
+5. Any edit to the Qur'an text itself needs the owner's explicit authorization first,
+   whatever the evidence.
+
 ## Licensing
 
 Licensing varies per translation — see [QUL's translations page](https://qul.tarteel.ai/resources/translation) for the license note on each individual resource before adding more files here. Translations explicitly marked "© copyrighted" on that page are not included.
